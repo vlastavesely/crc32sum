@@ -1,0 +1,13 @@
+CRC32 Checksum Checker
+======================
+This is a simple utility that calculates the CRC-32 checksum for each of
+the given files or for data from standard input. It aims to work in the same
+way as the `md5sum` or `sha1sum` utilities do.
+
+!!! Note that the CRC-32 checksum is merely used for error detection in
+transmission and storage. It is not intended to guard against the malicious
+modification of files (i.e., it is not a cryptographic hash). !!!
+
+Licensing notice
+----------------
+This software is released under the GPLv2 License.
