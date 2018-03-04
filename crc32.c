@@ -134,9 +134,58 @@ static int do_file_checksum(const char *filename)
 	return 0;
 }
 
+static void trim_trailing_newlines(char *str)
+{
+	char *last = str + strlen(str) - 1;
+
+	while (last > str && ((char) *last == '\n' || (char) *last == '\r'))
+		*(last--) = '\0';
+}
+
 static int do_check(const char *filename)
 {
-	/* TODO */
+	struct crc32_checksum *cksum;
+	FILE *fp;
+	char *line = NULL, *path;
+	size_t len = 0;
+	ssize_t n = 0;
+	unsigned int crc;
+	int retval = 0, failed = 0;
+
+	fp = fopen(filename, "r");
+	if (fp == NULL) {
+		error("failed to open '%s'.", filename);
+		return 1;
+	}
+
+	while ((n = getline(&line, &len, fp)) != -1) {
+		path = line + 10;
+		trim_trailing_newlines(path);
+		cksum = crc32_file(path);
+		if (IS_ERR(cksum)) {
+			error("failed to compute CRC of '%s'.", path);
+			retval = PTR_ERR(cksum);
+			failed++;
+		} else {
+			fprintf(stdout, "%s: ", path);
+			crc = strtol(line, NULL, 16);
+			if (cksum->crc == crc) {
+				fprintf(stdout, "OK\n");
+			} else {
+				fprintf(stdout, "FAILED\n");
+				failed++;
+			}
+		}
+	}
+
+	if (failed)
+		fprintf(stdout, "WARNING: %d computed checksum(s) did "
+				"NOT match\n", failed);
+
+	free(line);
+	fclose(fp);
+
+	return retval;
 }
 
 int main(int argc, char *const *argv)
