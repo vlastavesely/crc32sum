@@ -1,13 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include "err.h"
 
 #define PROGNAME "crc32"
 #define VERSION "0.1"
 #define BUFSIZE 4096
+
+struct crc32_checksum {
+	const char *filename;
+	unsigned int crc;
+};
 
 static const char *short_opts = "hvc:";
 
@@ -28,8 +39,21 @@ static void show_version()
 	puts(PROGNAME " v" VERSION);
 }
 
-static unsigned int crc32(unsigned char *data, unsigned int nbytes,
-			  unsigned int crc)
+#undef error
+void error(const char *err, ...)
+{
+	va_list params;
+	char msg[4096];
+
+	va_start(params, err);
+	fprintf(stderr, PROGNAME ": ");
+	vfprintf(stderr, err, params);
+	fprintf(stderr, "\n");
+	va_end(params);
+}
+
+static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
+				 unsigned int crc)
 {
 	unsigned int mask, i = 0;
 	int j;
@@ -47,36 +71,70 @@ static unsigned int crc32(unsigned char *data, unsigned int nbytes,
 	return ~crc;
 }
 
-static unsigned int crc32_file(const char *filename)
+struct crc32_checksum *crc32_file(const char *filename)
 {
-	unsigned int n, crc = 0;
+	struct crc32_checksum *cksum;
+	struct stat st;
 	unsigned char buffer[BUFSIZE];
-	int fd = open(filename, O_RDONLY);
+	unsigned int crc = 0;
+	int fd, n = 0;
 
+	if (stat(filename, &st) != 0)
+		return ERR_PTR(-errno);
+
+	if (S_ISDIR(st.st_mode))
+		return ERR_PTR(-EISDIR);
+
+	cksum = malloc(sizeof(*cksum));
+	if (cksum == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	fd = open(filename, O_RDONLY);
 	if (fd < 0)
-		return 0;
+		return ERR_PTR(-errno);
 
 	while ((n = read(fd, buffer, sizeof(buffer))) > 0)
-		crc = crc32(buffer, n, crc);
-
+		crc = crc32_buffer(buffer, n, crc);
 	close(fd);
 
-	return crc;
+	cksum->filename = filename;
+	cksum->crc = crc;
+	return cksum;
 }
 
-static void print_crc32(unsigned int crc)
+static int do_file_checksum(const char *filename)
 {
-	printf("%08x\n", crc);
-}
+	struct crc32_checksum *cksum;
+	int err;
 
-int do_file_checksum(const char *filename)
-{
-	printf("file: %s\n", filename);
-	/* TODO */
+	cksum = crc32_file(filename);
+
+	if (IS_ERR(cksum)) {
+		err = PTR_ERR(cksum);
+		switch (-err) {
+		case ENOENT:
+			error("'%s' not found.", filename);
+			break;
+		case EISDIR:
+			error("'%s' is a directory.", filename);
+			break;
+		case EACCES:
+			error("do not have access to '%s'.", filename);
+			break;
+		default:
+			error("cannot open '%s': error %d.", filename, err);
+			break;
+		}
+		return err;
+	}
+
+	fprintf(stdout, "%08x  %s\n", cksum->crc, cksum->filename);
+	free(cksum);
+
 	return 0;
 }
 
-int do_check(const char *filename)
+static int do_check(const char *filename)
 {
 	/* TODO */
 }
