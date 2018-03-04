@@ -131,13 +131,31 @@ static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
 	return ~crc;
 }
 
+struct crc32_checksum *crc32_fd(int fd)
+{
+	struct crc32_checksum *cksum;
+	unsigned char buffer[BUFSIZE];
+	unsigned int crc = 0;
+	int n = 0;
+
+	cksum = malloc(sizeof(*cksum));
+	if (cksum == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	while ((n = read(fd, buffer, sizeof(buffer))) > 0)
+		crc = crc32_buffer(buffer, n, crc);
+	close(fd);
+
+	cksum->filename = NULL;
+	cksum->crc = crc;
+	return cksum;
+}
+
 struct crc32_checksum *crc32_file(const char *filename)
 {
 	struct crc32_checksum *cksum;
 	struct stat st;
-	unsigned char buffer[BUFSIZE];
-	unsigned int crc = 0;
-	int fd, n = 0;
+	int fd;
 
 	if (stat(filename, &st) != 0)
 		return ERR_PTR(-errno);
@@ -145,20 +163,14 @@ struct crc32_checksum *crc32_file(const char *filename)
 	if (S_ISDIR(st.st_mode))
 		return ERR_PTR(-EISDIR);
 
-	cksum = malloc(sizeof(*cksum));
-	if (cksum == NULL)
-		return ERR_PTR(-ENOMEM);
-
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
 		return ERR_PTR(-errno);
 
-	while ((n = read(fd, buffer, sizeof(buffer))) > 0)
-		crc = crc32_buffer(buffer, n, crc);
-	close(fd);
+	cksum = crc32_fd(fd);
+	if (!IS_ERR(cksum))
+		cksum->filename = filename;
 
-	cksum->filename = filename;
-	cksum->crc = crc;
 	return cksum;
 }
 
@@ -189,6 +201,22 @@ static int do_file_checksum(const char *filename)
 	}
 
 	fprintf(stdout, "%08x  %s\n", cksum->crc, cksum->filename);
+	free(cksum);
+
+	return 0;
+}
+
+static int do_stdin_checksum()
+{
+	struct crc32_checksum *cksum;
+
+	cksum = crc32_fd(STDIN_FILENO);
+	if (IS_ERR(cksum)) {
+		error("failed to read from stdin");
+		return PTR_ERR(cksum);
+	}
+
+	fprintf(stdout, "%08x\n", cksum->crc);
 	free(cksum);
 
 	return 0;
@@ -288,6 +316,8 @@ int main(int argc, char *const *argv)
 		while (optind < argc)
 			if (do_file_checksum(argv[optind++]) != 0)
 				retval++;
+	} else {
+		retval = do_stdin_checksum();
 	}
 
 out:

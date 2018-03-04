@@ -28,6 +28,13 @@ big: OK"; then
 	exit 1
 fi
 
+sum=$(echo -n "hello" | ./crc32)
+if ! test x"$sum" = x"3610a686"; then
+	echo "\033[31merror: STDIN checksum generation failed.\033[0m"
+	exit 1
+fi
+
+
 rm hello world zeroes big check
 
 echo "\033[32msuccess\033[0m"
