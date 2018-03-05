@@ -1,12 +1,12 @@
 PREFIX=/usr
-TARGET=crc32
+TARGET=crc32sum
 
 .PHONY: all install uninstall test clean
 
 all: $(TARGET)
 
-$(TARGET): crc32.c
-	$(CC) crc32.c -o $@ -Ofast
+$(TARGET): crc32sum.c
+	$(CC) crc32sum.c -o $@ -Ofast
 
 test:
 	sh test.sh
