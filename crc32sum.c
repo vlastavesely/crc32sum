@@ -103,7 +103,19 @@ static const struct option long_opts[] = {
 
 static void show_usage()
 {
-	puts("*usage*"); /* TODO */
+	puts("Usage: crc32sum [OPTION]... [FILE]...");
+	puts("Print or check CRC32 checksums.");
+	putchar('\n');
+	puts("With no FILE, read standard input.");
+	putchar('\n');
+	puts("  -c, --check    read CRC32 sums from the FILE and check them");
+	putchar('\n');
+	puts("The following options are useful only when verifying checksums:");
+	puts("      --quiet    don't print any output");
+	putchar('\n');
+	puts("      --help     display this help and exit");
+	puts("      --version  output version information and exit");
+	putchar('\n');
 }
 
 static void show_version()
