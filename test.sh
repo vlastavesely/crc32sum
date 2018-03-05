@@ -30,6 +30,12 @@ big: OK"; then
 	exit 1
 fi
 
+output=$(./$binary -c check -q)
+if ! test -z "$output"; then
+	echo "\033[31merror: argument '--quiet' not working.\033[0m"
+	exit 1
+fi
+
 sum=$(echo -n "hello" | ./$binary)
 if ! test x"$sum" = x"3610a686"; then
 	echo "\033[31merror: STDIN checksum generation failed.\033[0m"

@@ -17,6 +17,8 @@
 #define VERSION "0.1"
 #define BUFSIZE 4096
 
+#define CRC32SUM_QUIET 1 >> 0
+
 unsigned int poly8_lookup[256] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
 	0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -89,12 +91,13 @@ struct crc32_checksum {
 	unsigned int crc;
 };
 
-static const char *short_opts = "hvc:";
+static const char *short_opts = "hvc:q";
 
 static const struct option long_opts[] = {
 	{"help",       no_argument,        0, 'h'},
 	{"version",    no_argument,        0, 'v'},
 	{"check",      required_argument,  0, 'c'},
+	{"quiet",      no_argument,        0, 'q'},
 	{0, 0, 0, 0}
 };
 
@@ -230,7 +233,7 @@ static void trim_trailing_newlines(char *str)
 		*(last--) = '\0';
 }
 
-static int do_check(const char *filename)
+static int do_check(const char *filename, unsigned int flags)
 {
 	struct crc32_checksum *cksum;
 	FILE *fp;
@@ -255,14 +258,16 @@ static int do_check(const char *filename)
 			retval = PTR_ERR(cksum);
 			failed++;
 		} else {
-			fprintf(stdout, "%s: ", path);
 			crc = strtol(line, NULL, 16);
-			if (cksum->crc == crc) {
-				fprintf(stdout, "OK\n");
-			} else {
-				fprintf(stdout, "FAILED\n");
+
+			if (cksum->crc != crc)
 				failed++;
-			}
+
+			if (flags & CRC32SUM_QUIET)
+				continue;
+
+			fprintf(stdout, "%s: %s\n", path,
+				cksum->crc == crc ? "OK" : "FAILED");
 		}
 	}
 
@@ -280,6 +285,7 @@ int main(int argc, char *const *argv)
 {
 	int c = 0, retval = 0;
 	int opt_index = 0;
+	unsigned int flags = 0;
 	const unsigned char *check = NULL;
 
 	while (c != -1) {
@@ -297,6 +303,9 @@ int main(int argc, char *const *argv)
 		case 'c':
 			check = optarg;
 			break;
+		case 'q':
+			flags |= CRC32SUM_QUIET;
+			break;
 		case 0:
 		case '?':
 			show_usage();
@@ -308,7 +317,7 @@ int main(int argc, char *const *argv)
 	}
 
 	if (check) {
-		retval = do_check(check);
+		retval = do_check(check, flags);
 		goto out;
 	}
 
