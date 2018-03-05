@@ -290,7 +290,7 @@ static int do_check(const char *filename, unsigned int flags)
 	free(line);
 	fclose(fp);
 
-	return retval;
+	return retval | failed;
 }
 
 int main(int argc, char *const *argv)
