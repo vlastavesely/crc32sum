@@ -17,7 +17,7 @@
 #define VERSION "0.1"
 #define BUFSIZE 4096
 
-#define CRC32SUM_QUIET 1 >> 0
+#define CRC32SUM_QUIET 1 << 0
 
 unsigned int poly8_lookup[256] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
