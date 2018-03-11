@@ -9,7 +9,6 @@
 #include <errno.h>
 
 #include "crc32.h"
-#include "err.h"
 
 #define PROGNAME "crc32"
 #define VERSION "0.1"
@@ -65,7 +64,6 @@ void error(const char *err, ...)
 static int do_file_checksum(const char *filename)
 {
 	unsigned int checksum;
-	int err;
 
 	checksum = crc32_file(filename);
 	if (errno) {
@@ -80,7 +78,7 @@ static int do_file_checksum(const char *filename)
 			error("do not have access to '%s'.", filename);
 			break;
 		default:
-			error("cannot open '%s': error %d.", filename, err);
+			error("cannot open '%s': error %d.", filename, errno);
 			break;
 		}
 		return -errno;
