@@ -16,6 +16,21 @@
 
 #define CRC32SUM_QUIET 1 << 0
 
+static const char *usage_str =
+	"usage: crc32sum [OPTION]... [FILE]...\n"
+	"\n"
+	"Print or check CRC32 checksums.\n"
+	"\n"
+	"With no FILE, read standard input.\n"
+	"\n"
+	"  -c, --check    read CRC32 sums from the FILE and check them\n"
+	"\n"
+	"The following options are useful only when verifying checksums:\n"
+	"      --quiet    don't print any output\n"
+	"\n"
+	"      --help     display this help and exit\n"
+	"      --version  output version information and exit\n";
+
 static const char *short_opts = "hvc:q";
 
 static const struct option long_opts[] = {
@@ -28,19 +43,7 @@ static const struct option long_opts[] = {
 
 static void show_usage()
 {
-	puts("Usage: crc32sum [OPTION]... [FILE]...");
-	puts("Print or check CRC32 checksums.");
-	putchar('\n');
-	puts("With no FILE, read standard input.");
-	putchar('\n');
-	puts("  -c, --check    read CRC32 sums from the FILE and check them");
-	putchar('\n');
-	puts("The following options are useful only when verifying checksums:");
-	puts("      --quiet    don't print any output");
-	putchar('\n');
-	puts("      --help     display this help and exit");
-	puts("      --version  output version information and exit");
-	putchar('\n');
+	fprintf(stdout, "%s\n", usage_str);
 }
 
 static void show_version()
