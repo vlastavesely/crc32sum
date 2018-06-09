@@ -10,14 +10,13 @@
 
 #include "crc32.h"
 
-#define PROGNAME "crc32"
+#define PROGNAME "crc32sum"
 #define VERSION "0.1"
-#define BUFSIZE 4096
 
 #define CRC32SUM_QUIET 1 << 0
 
 static const char *usage_str =
-	"usage: crc32sum [OPTION]... [FILE]...\n"
+	"usage: " PROGNAME " [OPTION]... [FILE]...\n"
 	"\n"
 	"Print or check CRC32 checksums.\n"
 	"\n"
@@ -55,7 +54,6 @@ static void show_version()
 void error(const char *err, ...)
 {
 	va_list params;
-	char msg[4096];
 
 	va_start(params, err);
 	fprintf(stderr, PROGNAME ": ");
@@ -169,7 +167,7 @@ int main(int argc, char *const *argv)
 	int c = 0, retval = 0;
 	int opt_index = 0;
 	unsigned int flags = 0;
-	const unsigned char *check = NULL;
+	const char *check = NULL;
 
 	while (c != -1) {
 		c = getopt_long(argc, argv, short_opts, long_opts, &opt_index);

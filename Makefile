@@ -1,6 +1,6 @@
 PREFIX=/usr
 TARGET=crc32sum
-CFLAGS=-Ofast
+CFLAGS=-Ofast -Wall
 
 SRCFILES := $(shell find . -type f -name "*.c")
 OBJFILES := $(patsubst %.c, %.o, $(SRCFILES))
