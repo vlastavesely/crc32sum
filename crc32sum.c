@@ -9,11 +9,13 @@
 #include <errno.h>
 
 #include "crc32.h"
+#include "file-list.h"
 
 #define PROGNAME "crc32sum"
 #define VERSION "0.1"
 
-#define CRC32SUM_QUIET 1 << 0
+#define CRC32SUM_QUIET		1 << 0
+#define CRC32SUM_RECURSIVE	1 << 1
 
 static const char *usage_str =
 	"usage: " PROGNAME " [OPTION]... [FILE]...\n"
@@ -22,21 +24,23 @@ static const char *usage_str =
 	"\n"
 	"With no FILE, read standard input.\n"
 	"\n"
-	"  -c, --check    read CRC32 sums from the FILE and check them\n"
+	"  -c, --check      read CRC32 sums from the FILE and check them\n"
+	"  -r, --recursive  generate CRC32 sums for all files in given directories \n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
-	"      --quiet    don't print any output\n"
+	"      --quiet      don't print any output\n"
 	"\n"
-	"      --help     display this help and exit\n"
-	"      --version  output version information and exit\n";
+	"      --help       display this help and exit\n"
+	"      --version    output version information and exit\n";
 
-static const char *short_opts = "hvc:q";
+static const char *short_opts = "hvc:qr";
 
 static const struct option long_opts[] = {
 	{"help",       no_argument,        0, 'h'},
 	{"version",    no_argument,        0, 'v'},
 	{"check",      required_argument,  0, 'c'},
 	{"quiet",      no_argument,        0, 'q'},
+	{"recursive",  no_argument,        0, 'r'},
 	{0, 0, 0, 0}
 };
 
@@ -67,7 +71,7 @@ static int do_file_checksum(const char *filename)
 	unsigned int checksum;
 
 	checksum = crc32_file(filename);
-	if (errno) {
+	if (checksum == 0 && errno) {
 		switch (errno) {
 		case ENOENT:
 			error("'%s' not found.", filename);
@@ -90,16 +94,37 @@ static int do_file_checksum(const char *filename)
 	return 0;
 }
 
+static int do_file_checksum_recursively(const char *filename)
+{
+	struct file *head, *walk;
+	int retval = 0;
+
+	head = file_list_create(filename);
+
+	for (walk = head; walk; walk = walk->next) {
+		if (walk->type == FILE_TYPE_FILE) {
+			retval = do_file_checksum(walk->path);
+			if (retval != 0)
+				goto drop_list;
+		}
+	}
+
+drop_list:
+	file_list_drop(head);
+
+	return retval;
+}
+
 static int do_stdin_checksum()
 {
 	unsigned int checksum;
 	int saved_errno;
 
 	checksum = crc32_fd(STDIN_FILENO);
-	if (errno) {
+	if (checksum == 0 && errno) {
 		saved_errno = errno;
 		error("failed to read from stdin");
-		return saved_errno;
+		return -saved_errno;
 	}
 
 	fprintf(stdout, "%08x\n", checksum);
@@ -187,6 +212,9 @@ int main(int argc, char *const *argv)
 		case 'q':
 			flags |= CRC32SUM_QUIET;
 			break;
+		case 'r':
+			flags |= CRC32SUM_RECURSIVE;
+			break;
 		case 0:
 		case '?':
 			show_usage();
@@ -203,9 +231,15 @@ int main(int argc, char *const *argv)
 	}
 
 	if (optind < argc) {
-		while (optind < argc)
-			if (do_file_checksum(argv[optind++]) != 0)
-				retval++;
+		while (optind < argc) {
+			if (flags & CRC32SUM_RECURSIVE) {
+				if (do_file_checksum_recursively(argv[optind++]) != 0)
+					retval++;
+			} else {
+				if (do_file_checksum(argv[optind++]) != 0)
+					retval++;
+			}
+		}
 	} else {
 		retval = do_stdin_checksum();
 	}
