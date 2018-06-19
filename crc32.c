@@ -94,11 +94,16 @@ unsigned int crc32_fd(int fd)
 	int n = 0;
 
 	errno = 0;
-	while ((n = read(fd, buffer, sizeof(buffer))) > 0)
-		checksum = crc32_buffer(buffer, n, checksum);
+	while (1) {
+		n = read(fd, buffer, sizeof(buffer));
 
-	if (errno)
-		return 0;
+		if (n == -1)
+			return 0;
+		if (n == 0)
+			break;
+
+		checksum = crc32_buffer(buffer, n, checksum);
+	}
 
 	return checksum;
 }

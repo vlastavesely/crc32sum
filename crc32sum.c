@@ -25,7 +25,7 @@ static const char *usage_str =
 	"With no FILE, read standard input.\n"
 	"\n"
 	"  -c, --check      read CRC32 sums from the FILE and check them\n"
-	"  -r, --recursive  generate CRC32 sums for all files in given directories \n"
+	"  -r, --recursive  generate CRC32 sums for all files in given directories\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
 	"      --quiet      don't print any output\n"
@@ -62,7 +62,7 @@ void error(const char *err, ...)
 	va_start(params, err);
 	fprintf(stderr, PROGNAME ": ");
 	vfprintf(stderr, err, params);
-	fprintf(stderr, "\n");
+	fputc('\n', stderr);
 	va_end(params);
 }
 
@@ -156,10 +156,15 @@ static int do_check(const char *filename, unsigned int flags)
 	}
 
 	while ((n = getline(&line, &len, fp)) != -1) {
+		if (n < 10)
+			continue;
+
 		path = line + 10;
 		trim_trailing_newlines(path);
+
 		checksum = crc32_file(path);
-		if (errno) {
+
+		if (checksum == 0 && errno) {
 			retval = errno;
 			error("failed to compute CRC of '%s'.", path);
 			failed++;
