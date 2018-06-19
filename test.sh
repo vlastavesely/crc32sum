@@ -5,7 +5,7 @@ binary=crc32sum
 
 test -f $binary || make
 
-mkdir -p ./test
+rm -rf ./test && mkdir ./test
 
 echo -n "hello" >./test/hello
 echo -n "world" >./test/world
@@ -55,6 +55,21 @@ fi
 sum=$(echo -n "hello" | ./$binary)
 if ! test x"$sum" = x"3610a686"; then
 	echo "\033[31merror: STDIN checksum generation failed.\033[0m"
+	exit 1
+fi
+
+output=$(./$binary test 2>&1 | cat)
+if ! test x"$output" = x"crc32sum: 'test' is a directory."
+then
+	echo "\033[31merror: directory sum test failed.\033[0m"
+	exit 1
+fi
+
+chmod 0000 test/hello
+output=$(./$binary test/hello 2>&1 | cat)
+if ! test x"$output" = x"crc32sum: do not have access to 'test/hello'."
+then
+	echo "\033[31merror: inaccessible file sum test failed.\033[0m"
 	exit 1
 fi
 
