@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #include "crc32.h"
-#include "file-list.h"
+#include "queue.h"
 
 #define PROGNAME "crc32sum"
 #define VERSION "0.1"
@@ -94,27 +94,6 @@ static int do_file_checksum(const char *filename)
 	return 0;
 }
 
-static int do_file_checksum_recursively(const char *filename)
-{
-	struct file *head, *walk;
-	int retval = 0;
-
-	head = file_list_create(filename);
-
-	for (walk = head; walk; walk = walk->next) {
-		if (walk->type == FILE_TYPE_FILE) {
-			retval = do_file_checksum(walk->path);
-			if (retval != 0)
-				goto drop_list;
-		}
-	}
-
-drop_list:
-	file_list_drop(head);
-
-	return retval;
-}
-
 static int do_stdin_checksum()
 {
 	unsigned int checksum;
@@ -192,12 +171,24 @@ static int do_check(const char *filename, unsigned int flags)
 	return retval | failed;
 }
 
+static int queue_do_checksums(struct queue *queue)
+{
+	struct file *walk;
+	int retval = 0;
+
+	for (walk = queue->head; walk; walk = walk->next)
+		retval += do_file_checksum(walk->path);
+
+	return retval;
+}
+
 int main(int argc, char *const *argv)
 {
 	int c = 0, retval = 0;
 	int opt_index = 0;
 	unsigned int flags = 0;
 	const char *check = NULL;
+	struct queue queue;
 
 	while (c != -1) {
 		c = getopt_long(argc, argv, short_opts, long_opts, &opt_index);
@@ -235,19 +226,24 @@ int main(int argc, char *const *argv)
 		goto out;
 	}
 
+	if (optind == argc) {
+		retval = do_stdin_checksum();
+		goto out;
+	}
+
+	queue_init(&queue);
+
 	if (optind < argc) {
 		while (optind < argc) {
-			if (flags & CRC32SUM_RECURSIVE) {
-				if (do_file_checksum_recursively(argv[optind++]) != 0)
-					retval++;
-			} else {
-				if (do_file_checksum(argv[optind++]) != 0)
-					retval++;
+			retval = queue_schedule_path(&queue, argv[optind++]);
+			if (retval != 0) {
+				queue_clear(&queue);
+				goto out;
 			}
 		}
-	} else {
-		retval = do_stdin_checksum();
 	}
+
+	queue_do_checksums(&queue);
 
 out:
 	return retval;

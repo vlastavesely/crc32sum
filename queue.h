@@ -11,6 +11,7 @@ struct file {
 
 struct queue {
 	unsigned int files;
+	unsigned int nbytes;
 	struct file *head;
 	struct file **tail;
 };
@@ -22,7 +23,7 @@ static inline int is_dot_or_dotdot(const char *name)
 }
 
 void queue_init(struct queue *queue);
+void queue_clear(struct queue *queue);
 int queue_schedule_path(struct queue *queue, const char *path);
-void file_list_drop(struct file *head);
 
 #endif /* __FILE_LIST_H */

@@ -23,6 +23,7 @@ static void queue_schedule_file(struct queue *queue, const char *path,
 	*queue->tail = file;
 	queue->tail = &(*queue->tail)->next;
 	queue->files++;
+	queue->nbytes += size;
 }
 
 static void file_drop(struct file *file)
@@ -34,11 +35,29 @@ static void file_drop(struct file *file)
 	free(file);
 }
 
+static void file_list_drop(struct file *head)
+{
+	struct file *walk = head, *next;
+
+	while (walk) {
+		next = walk->next;
+		file_drop(walk);
+		walk = next;
+	}
+}
+
 void queue_init(struct queue *queue)
 {
 	queue->files = 0;
+	queue->nbytes = 0;
 	queue->head = NULL;
 	queue->tail = &queue->head;
+}
+
+void queue_clear(struct queue *queue)
+{
+	file_list_drop(queue->head);
+	queue_init(queue);
 }
 
 int queue_schedule_path(struct queue *queue, const char *path)
@@ -81,15 +100,4 @@ close_dir:
 	}
 
 	return retval;
-}
-
-void file_list_drop(struct file *head)
-{
-	struct file *walk = head, *next;
-
-	while (walk) {
-		next = walk->next;
-		file_drop(walk);
-		walk = next;
-	}
 }
