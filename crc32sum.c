@@ -221,6 +221,8 @@ int main(int argc, char *const *argv)
 		}
 	}
 
+	crc32_initialize();
+
 	if (check) {
 		retval = do_check(check, flags);
 		goto out;

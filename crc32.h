@@ -3,6 +3,7 @@
 #ifndef __CRC32_H
 #define __CRC32_H
 
+void crc32_initialize(void);
 unsigned int crc32_fd(int fd);
 unsigned int crc32_file(const char *filename);
 

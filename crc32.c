@@ -8,9 +8,10 @@
 
 #include "crc32.h"
 
-#define BUFSIZE 8192
+#define BUFSIZE 65536
 
-unsigned int poly8_lookup[256] = {
+/* Precomputed lookup table for CRC computed with 0xedb88320 polynomial. */
+static unsigned int poly8_lookup[256] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
 	0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
 	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -77,14 +78,68 @@ unsigned int poly8_lookup[256] = {
 	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
+static unsigned int crc32_lookup[16][256];
+
+static int crc32_initialized = 0;
+
+void crc32_initialize(void)
+{
+	unsigned int i, j;
+
+	if (crc32_initialized == 1)
+		return;
+
+	for (i = 0; i < 256; i++)
+		crc32_lookup[0][i] = poly8_lookup[i];
+
+	for (i = 0; i < 256; i++)
+		for (j = 1; j < 16; j++)
+			crc32_lookup[j][i] = (crc32_lookup[j - 1][i] >> 8) ^
+				crc32_lookup[0][crc32_lookup[j - 1][i] & 0xff];
+
+	crc32_initialized = 1;
+}
+
 static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
 				 unsigned int crc)
 {
+	unsigned int *ptr = (unsigned int *) data;
+	unsigned int a, b, c, d;
+
 	crc = ~crc;
+
+	while (nbytes >= 16) {
+		a = (*ptr++) ^ crc;
+		b = (*ptr++);
+		c = (*ptr++);
+		d = (*ptr++);
+
+		crc =	crc32_lookup[ 0][(d >> 24) & 0xff] ^
+			crc32_lookup[ 1][(d >> 16) & 0xff] ^
+			crc32_lookup[ 2][(d >>  8) & 0xff] ^
+			crc32_lookup[ 3][ d        & 0xff] ^
+			crc32_lookup[ 4][(c >> 24) & 0xff] ^
+			crc32_lookup[ 5][(c >> 16) & 0xff] ^
+			crc32_lookup[ 6][(c >>  8) & 0xff] ^
+			crc32_lookup[ 7][ c        & 0xff] ^
+			crc32_lookup[ 8][(b >> 24) & 0xff] ^
+			crc32_lookup[ 9][(b >> 16) & 0xff] ^
+			crc32_lookup[10][(b >>  8) & 0xff] ^
+			crc32_lookup[11][ b        & 0xff] ^
+			crc32_lookup[12][(a >> 24) & 0xff] ^
+			crc32_lookup[13][(a >> 16) & 0xff] ^
+			crc32_lookup[14][(a >>  8) & 0xff] ^
+			crc32_lookup[15][ a        & 0xff];
+
+		nbytes -= 16;
+	}
+
+	data = (unsigned char *) ptr;
 	while (nbytes--)
-		crc = poly8_lookup[((unsigned char) crc ^ *(data++))] ^ (crc >> 8);
+		crc = crc32_lookup[0][((unsigned char) crc ^ *(data++))] ^ (crc >> 8);
 
 	return ~crc;
+
 }
 
 unsigned int crc32_fd(int fd)
