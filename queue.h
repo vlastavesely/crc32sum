@@ -24,6 +24,7 @@ static inline int is_dot_or_dotdot(const char *name)
 
 void queue_init(struct queue *queue);
 void queue_clear(struct queue *queue);
-int queue_schedule_path(struct queue *queue, const char *path);
+int queue_schedule_path(struct queue *queue, const char *path,
+			unsigned int flags);
 
 #endif /* __FILE_LIST_H */

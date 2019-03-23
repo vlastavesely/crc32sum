@@ -11,11 +11,7 @@
 #include "crc32.h"
 #include "queue.h"
 
-#define PROGNAME "crc32sum"
-#define VERSION "0.1"
-
-#define CRC32SUM_QUIET		1 << 0
-#define CRC32SUM_RECURSIVE	1 << 1
+#include "crc32sum.h"
 
 static const char *usage_str =
 	"usage: " PROGNAME " [OPTION]... [FILE]...\n"
@@ -187,7 +183,7 @@ int main(int argc, char *const *argv)
 	int c = 0, retval = 0;
 	int opt_index = 0;
 	unsigned int flags = 0;
-	const char *check = NULL;
+	const char *check = NULL, *path = NULL;
 	struct queue queue;
 
 	while (c != -1) {
@@ -237,8 +233,16 @@ int main(int argc, char *const *argv)
 
 	if (optind < argc) {
 		while (optind < argc) {
-			retval = queue_schedule_path(&queue, argv[optind++]);
-			if (retval != 0) {
+			path = argv[optind++];
+			retval = queue_schedule_path(&queue, path, flags);
+
+			switch (-retval) {
+			case 0:
+				break;
+			case EISDIR:
+				error("'%s' is a directory.", path);
+				break;
+			default:
 				queue_clear(&queue);
 				goto out;
 			}

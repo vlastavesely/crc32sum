@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <errno.h>
 
+#include "crc32sum.h"
 #include "queue.h"
 
 
@@ -60,7 +61,8 @@ void queue_clear(struct queue *queue)
 	queue_init(queue);
 }
 
-int queue_schedule_path(struct queue *queue, const char *path)
+int queue_schedule_path(struct queue *queue, const char *path,
+			unsigned int flags)
 {
 	DIR *dir;
 	struct dirent *de;
@@ -73,6 +75,10 @@ int queue_schedule_path(struct queue *queue, const char *path)
 		return -errno;
 
 	if (S_ISDIR(sb.st_mode)) {
+		if ((flags & CRC32SUM_RECURSIVE) == 0) {
+			return -EISDIR;
+		}
+
 		dir = opendir(path);
 		if (dir == NULL)
 			return -errno;
@@ -88,7 +94,7 @@ int queue_schedule_path(struct queue *queue, const char *path)
 			child = malloc(len);
 			snprintf(child, len, "%s/%s", path, de->d_name);
 
-			retval = queue_schedule_path(queue, child);
+			retval = queue_schedule_path(queue, child, flags);
 			free(child);
 			if (retval != 0)
 				goto close_dir;
