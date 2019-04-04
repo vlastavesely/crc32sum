@@ -5,13 +5,13 @@
 
 struct file {
 	char *path;
-	unsigned int size;
+	unsigned long size;
 	struct file *next;
 };
 
 struct queue {
 	unsigned int files;
-	unsigned int nbytes;
+	unsigned long nbytes;
 	struct file *head;
 	struct file **tail;
 };

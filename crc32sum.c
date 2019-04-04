@@ -22,6 +22,7 @@ static const char *usage_str =
 	"\n"
 	"  -c, --check      read CRC32 sums from the FILE and check them\n"
 	"  -r, --recursive  generate CRC32 sums for all files in given directories\n"
+	"  -p, --progress   show a progressbar\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
 	"      --quiet      don't print any output\n"
@@ -29,7 +30,7 @@ static const char *usage_str =
 	"      --help       display this help and exit\n"
 	"      --version    output version information and exit\n";
 
-static const char *short_opts = "hvc:qr";
+static const char *short_opts = "hvc:qrp";
 
 static const struct option long_opts[] = {
 	{"help",       no_argument,        0, 'h'},
@@ -37,6 +38,7 @@ static const struct option long_opts[] = {
 	{"check",      required_argument,  0, 'c'},
 	{"quiet",      no_argument,        0, 'q'},
 	{"recursive",  no_argument,        0, 'r'},
+	{"progress",   no_argument,        0, 'p'},
 	{0, 0, 0, 0}
 };
 
@@ -62,11 +64,11 @@ void error(const char *err, ...)
 	va_end(params);
 }
 
-static int do_file_checksum(const char *filename)
+static int do_file_checksum(const char *filename, struct progress *progress)
 {
 	unsigned int checksum;
 
-	checksum = crc32_file(filename);
+	checksum = crc32_file(filename, progress);
 	if (checksum == 0 && errno) {
 		switch (errno) {
 		case ENOENT:
@@ -95,7 +97,7 @@ static int do_stdin_checksum()
 	unsigned int checksum;
 	int saved_errno;
 
-	checksum = crc32_fd(STDIN_FILENO);
+	checksum = crc32_fd(STDIN_FILENO, NULL);
 	if (checksum == 0 && errno) {
 		saved_errno = errno;
 		error("failed to read from stdin");
@@ -130,14 +132,17 @@ static int do_check(const char *filename, unsigned int flags)
 		return 1;
 	}
 
-	while ((n = getline(&line, &len, fp)) != -1) {
+	while (1) {
+		n = getline(&line, &len, fp);
+		if (n == -1)
+			break;
 		if (n < 10)
 			continue;
 
 		path = line + 10;
 		trim_trailing_newlines(path);
 
-		checksum = crc32_file(path);
+		checksum = crc32_file(path, NULL);
 
 		if (checksum == 0 && errno) {
 			retval = errno;
@@ -167,13 +172,27 @@ static int do_check(const char *filename, unsigned int flags)
 	return retval | failed;
 }
 
-static int queue_do_checksums(struct queue *queue)
+static int queue_do_checksums(struct queue *queue, unsigned int flags)
 {
 	struct file *walk;
+	struct progress *progress = NULL;
 	int retval = 0;
 
+	if (flags & CRC32SUM_PROGRESS) {
+		progress = malloc(sizeof(*progress));
+		progress->max = queue->nbytes;
+		progress->pos = 0;
+		progress->add = progress_add;
+		progress_start();
+	}
+
 	for (walk = queue->head; walk; walk = walk->next)
-		retval += do_file_checksum(walk->path);
+		retval += do_file_checksum(walk->path, progress);
+
+	if (progress) {
+		progress_stop();
+		free(progress);
+	}
 
 	return retval;
 }
@@ -206,6 +225,9 @@ int main(int argc, char *const *argv)
 			break;
 		case 'r':
 			flags |= CRC32SUM_RECURSIVE;
+			break;
+		case 'p':
+			flags |= CRC32SUM_PROGRESS;
 			break;
 		case 0:
 		case '?':
@@ -241,7 +263,7 @@ int main(int argc, char *const *argv)
 				break;
 			case EISDIR:
 				error("'%s' is a directory.", path);
-				break;
+				goto out;
 			default:
 				queue_clear(&queue);
 				goto out;
@@ -249,7 +271,7 @@ int main(int argc, char *const *argv)
 		}
 	}
 
-	queue_do_checksums(&queue);
+	queue_do_checksums(&queue, flags);
 
 out:
 	return retval;
