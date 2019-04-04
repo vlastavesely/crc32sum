@@ -13,13 +13,14 @@
 
 
 static void queue_schedule_file(struct queue *queue, const char *path,
-				unsigned int size)
+				unsigned int size, void *userdata)
 {
 	struct file *file;
 
 	file = calloc(1, sizeof(*file));
 	file->path = strdup(path);
 	file->size = size;
+	file->userdata = userdata;
 
 	*queue->tail = file;
 	queue->tail = &(*queue->tail)->next;
@@ -59,6 +60,20 @@ void queue_clear(struct queue *queue)
 {
 	file_list_drop(queue->head);
 	queue_init(queue);
+}
+
+int queue_schedule_regular_file(struct queue *queue, const char *path,
+				void *userdata)
+{
+	struct stat sb;
+
+	if (stat(path, &sb) != 0)
+		return -errno;
+
+	if (S_ISREG(sb.st_mode) == 0)
+		return -EINVAL;
+
+	queue_schedule_file(queue, path, sb.st_size, userdata);
 }
 
 int queue_schedule_path(struct queue *queue, const char *path,
@@ -101,8 +116,10 @@ int queue_schedule_path(struct queue *queue, const char *path,
 		}
 close_dir:
 		closedir(dir);
+	} else if (S_ISREG(sb.st_mode)) {
+		queue_schedule_file(queue, path, sb.st_size, NULL);
 	} else {
-		queue_schedule_file(queue, path, sb.st_size);
+		error("Path '%s' is not a regular file or directory.", path);
 	}
 
 	return retval;

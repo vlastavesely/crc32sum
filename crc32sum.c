@@ -117,20 +117,75 @@ static void trim_trailing_newlines(char *str)
 		*(last--) = '\0';
 }
 
+static int do_file_checksum_check(const char *path, unsigned int expected,
+				  struct progress *progress)
+{
+	unsigned int checksum;
+	int retval = 0;
+
+	checksum = crc32_file(path, progress);
+
+	if (checksum == 0 && errno) {
+		retval = errno;
+		error("failed to compute CRC of '%s'.", path);
+		return -1;
+	}
+
+	return checksum == expected ? 0 : -1;
+}
+
+static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
+{
+	struct file *walk;
+	struct progress *progress = NULL;
+	int retval = 0;
+
+	if (flags & CRC32SUM_PROGRESS) {
+		progress = malloc(sizeof(*progress));
+		progress->max = queue->nbytes;
+		progress->pos = 0;
+		progress->add = progress_add;
+		progress_start();
+	}
+
+	for (walk = queue->head; walk; walk = walk->next) {
+		if (do_file_checksum_check(walk->path,
+					   (unsigned int) walk->userdata,
+					   progress) != 0) {
+			retval++;
+			if ((flags & CRC32SUM_QUIET) == 0)
+				fprintf(stdout, "%s: FAILED\n", walk->path);
+			continue;
+		}
+
+		fprintf(stdout, "%s: OK\n", walk->path);
+	}
+
+	if (progress) {
+		progress_stop();
+		free(progress);
+	}
+
+	return retval;
+}
+
 static int do_check(const char *filename, unsigned int flags)
 {
 	FILE *fp;
 	char *line = NULL, *path;
 	size_t len = 0;
 	ssize_t n = 0;
-	unsigned int checksum, checksum2;
-	int retval = 0, failed = 0;
+	unsigned int checksum;
+	int retval = 0;
+	struct queue queue;
 
 	fp = fopen(filename, "r");
 	if (fp == NULL) {
 		error("failed to open '%s'.", filename);
 		return 1;
 	}
+
+	queue_init(&queue);
 
 	while (1) {
 		n = getline(&line, &len, fp);
@@ -142,34 +197,16 @@ static int do_check(const char *filename, unsigned int flags)
 		path = line + 10;
 		trim_trailing_newlines(path);
 
-		checksum = crc32_file(path, NULL);
-
-		if (checksum == 0 && errno) {
-			retval = errno;
-			error("failed to compute CRC of '%s'.", path);
-			failed++;
-		} else {
-			checksum2 = strtol(line, NULL, 16);
-
-			if (checksum != checksum2)
-				failed++;
-
-			if (flags & CRC32SUM_QUIET)
-				continue;
-
-			fprintf(stdout, "%s: %s\n", path,
-				checksum == checksum2 ? "OK" : "FAILED");
-		}
+		queue_schedule_regular_file(&queue, path, (void *) strtol(line, NULL, 16));
 	}
 
-	if (failed)
-		fprintf(stdout, "WARNING: %d computed checksum(s) did "
-				"NOT match\n", failed);
+	retval = queue_do_checksums_check(&queue, flags);
 
+	queue_clear(&queue);
 	free(line);
 	fclose(fp);
 
-	return retval | failed;
+	return retval;
 }
 
 static int queue_do_checksums(struct queue *queue, unsigned int flags)

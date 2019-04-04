@@ -6,6 +6,7 @@
 struct file {
 	char *path;
 	unsigned long size;
+	void *userdata;
 	struct file *next;
 };
 
@@ -24,6 +25,9 @@ static inline int is_dot_or_dotdot(const char *name)
 
 void queue_init(struct queue *queue);
 void queue_clear(struct queue *queue);
+
+int queue_schedule_regular_file(struct queue *queue, const char *path,
+				void *userdata);
 int queue_schedule_path(struct queue *queue, const char *path,
 			unsigned int flags);
 
