@@ -143,7 +143,7 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 
 	for (walk = queue->head; walk; walk = walk->next) {
 		if (do_file_checksum_check(walk->path,
-					   (unsigned int) walk->userdata,
+					   (unsigned long) walk->userdata,
 					   progress) == 0) {
 			if ((flags & CRC32SUM_QUIET) == 0)
 				fprintf(stdout, "%s: OK\n", walk->path);

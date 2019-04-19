@@ -53,6 +53,12 @@ static void file_list_drop(struct file *head)
 	}
 }
 
+static inline int is_dot_or_dotdot(const char *name)
+{
+	return name[0] == '.' && (name[1] == '\0' ||
+		(name[1] == '.' && name[2] == '\0'));
+}
+
 void queue_init(struct queue *queue)
 {
 	queue->files = 0;
