@@ -120,15 +120,13 @@ static void trim_trailing_newlines(char *str)
 static int do_file_checksum_check(const char *path, unsigned int expected,
 				  struct progress *progress)
 {
-	unsigned int checksum;
-	int retval = 0;
-
-	checksum = crc32_file(path, progress);
+	unsigned int checksum = crc32_file(path, progress);
+	int saved_errno;
 
 	if (checksum == 0 && errno) {
-		retval = errno;
+		saved_errno = errno;
 		error("failed to compute CRC of '%s'.", path);
-		return -1;
+		return -saved_errno;
 	}
 
 	return checksum == expected ? 0 : -1;
@@ -151,14 +149,13 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 	for (walk = queue->head; walk; walk = walk->next) {
 		if (do_file_checksum_check(walk->path,
 					   (unsigned int) walk->userdata,
-					   progress) != 0) {
-			retval++;
+					   progress) == 0) {
 			if ((flags & CRC32SUM_QUIET) == 0)
-				fprintf(stdout, "%s: FAILED\n", walk->path);
-			continue;
+				fprintf(stdout, "%s: OK\n", walk->path);
+		} else {
+			retval++;
+			fprintf(stdout, "%s: FAILED\n", walk->path);
 		}
-
-		fprintf(stdout, "%s: OK\n", walk->path);
 	}
 
 	if (progress) {
@@ -175,7 +172,6 @@ static int do_check(const char *filename, unsigned int flags)
 	char *line = NULL, *path;
 	size_t len = 0;
 	ssize_t n = 0;
-	unsigned int checksum;
 	int retval = 0;
 	struct queue queue;
 

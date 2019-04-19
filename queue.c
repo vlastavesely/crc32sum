@@ -12,12 +12,15 @@
 #include "queue.h"
 
 
-static void queue_schedule_file(struct queue *queue, const char *path,
+static int queue_schedule_file(struct queue *queue, const char *path,
 				unsigned int size, void *userdata)
 {
 	struct file *file;
 
 	file = calloc(1, sizeof(*file));
+	if (file == NULL)
+		return -ENOMEM;
+
 	file->path = strdup(path);
 	file->size = size;
 	file->userdata = userdata;
@@ -26,6 +29,8 @@ static void queue_schedule_file(struct queue *queue, const char *path,
 	queue->tail = &(*queue->tail)->next;
 	queue->files++;
 	queue->nbytes += size;
+
+	return 0;
 }
 
 static void file_drop(struct file *file)
@@ -73,7 +78,7 @@ int queue_schedule_regular_file(struct queue *queue, const char *path,
 	if (S_ISREG(sb.st_mode) == 0)
 		return -EINVAL;
 
-	queue_schedule_file(queue, path, sb.st_size, userdata);
+	return queue_schedule_file(queue, path, sb.st_size, userdata);
 }
 
 int queue_schedule_path(struct queue *queue, const char *path,
@@ -90,9 +95,8 @@ int queue_schedule_path(struct queue *queue, const char *path,
 		return -errno;
 
 	if (S_ISDIR(sb.st_mode)) {
-		if ((flags & CRC32SUM_RECURSIVE) == 0) {
+		if ((flags & CRC32SUM_RECURSIVE) == 0)
 			return -EISDIR;
-		}
 
 		dir = opendir(path);
 		if (dir == NULL)
@@ -119,7 +123,7 @@ close_dir:
 	} else if (S_ISREG(sb.st_mode)) {
 		queue_schedule_file(queue, path, sb.st_size, NULL);
 	} else {
-		error("Path '%s' is not a regular file or directory.", path);
+		return -EINVAL;
 	}
 
 	return retval;
