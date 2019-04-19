@@ -139,7 +139,6 @@ static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
 		crc = crc32_lookup[0][((unsigned char) crc ^ *(data++))] ^ (crc >> 8);
 
 	return ~crc;
-
 }
 
 unsigned int crc32_fd(int fd, struct progress *progress)
@@ -147,6 +146,11 @@ unsigned int crc32_fd(int fd, struct progress *progress)
 	unsigned char buffer[BUFSIZE];
 	unsigned int checksum = 0;
 	int n = 0;
+
+	#ifdef CRC32_AUTOINIT
+	if (crc32_initialized == 0)
+		crc32_initialize();
+	#endif
 
 	errno = 0;
 	while (1) {
