@@ -8,7 +8,7 @@
 
 #include "crc32.h"
 
-#define BUFSIZE 65536
+#define BUFSIZE 1 << 20 /* 1M */
 
 /* Precomputed lookup table for CRC computed with 0xedb88320 polynomial. */
 static unsigned int poly8_lookup[256] = {
