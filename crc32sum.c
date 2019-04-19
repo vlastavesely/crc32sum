@@ -138,13 +138,8 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 	struct progress *progress = NULL;
 	int retval = 0;
 
-	if (flags & CRC32SUM_PROGRESS) {
-		progress = malloc(sizeof(*progress));
-		progress->max = queue->nbytes;
-		progress->pos = 0;
-		progress->add = progress_add;
-		progress_start();
-	}
+	if (flags & CRC32SUM_PROGRESS)
+		progress = progress_alloc(queue->nbytes);
 
 	for (walk = queue->head; walk; walk = walk->next) {
 		if (do_file_checksum_check(walk->path,
@@ -158,10 +153,8 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 		}
 	}
 
-	if (progress) {
-		progress_stop();
-		free(progress);
-	}
+	if (progress)
+		progress_drop(progress);
 
 	return retval;
 }
@@ -211,21 +204,14 @@ static int queue_do_checksums(struct queue *queue, unsigned int flags)
 	struct progress *progress = NULL;
 	int retval = 0;
 
-	if (flags & CRC32SUM_PROGRESS) {
-		progress = malloc(sizeof(*progress));
-		progress->max = queue->nbytes;
-		progress->pos = 0;
-		progress->add = progress_add;
-		progress_start();
-	}
+	if (flags & CRC32SUM_PROGRESS)
+		progress = progress_alloc(queue->nbytes);
 
 	for (walk = queue->head; walk; walk = walk->next)
 		retval += do_file_checksum(walk->path, progress);
 
-	if (progress) {
-		progress_stop();
-		free(progress);
-	}
+	if (progress)
+		progress_drop(progress);
 
 	return retval;
 }

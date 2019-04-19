@@ -10,9 +10,20 @@
 
 #include "progress.h"
 
+/*
+ * The code is based on following sources:
+ *
+ * https://salsa.debian.org/apt-team/apt/blob/master/apt-pkg/install-progress.cc
+ * https://salsa.debian.org/apt-team/apt/blob/master/apt-pkg/install-progress.h
+ */
+
 static struct winsize w;
 static int initialized = 0;
 
+static void progress_start();
+static void progress_stop();
+
+/* https://salsa.debian.org/apt-team/apt/blob/master/apt-pkg/install-progress.cc#L271-282 */
 static void progress_set_window_height(int height)
 {
 	fprintf(stderr, /* save cursor */
@@ -37,28 +48,7 @@ static void progress_abort()
 	exit(0);
 }
 
-void progress_add(struct progress *ctx, unsigned long val)
-{
-	ctx->pos += val;
-	progress_step((float) ctx->pos / (float) ctx->max);
-}
-
-void progress_start()
-{
-	if (isatty(STDERR_FILENO) == 0) {
-		errno = 0;
-		return;
-	}
-
-	signal(SIGWINCH, progress_init);
-	signal(SIGINT, progress_abort);
-	signal(SIGKILL, progress_abort);
-	progress_init();
-	initialized = 1;
-	progress_step(0);
-}
-
-void progress_step(float val)
+static void progress_step(float val)
 {
 	char *bar;
 	int max;
@@ -84,7 +74,28 @@ void progress_step(float val)
 	free(bar);
 }
 
-void progress_stop()
+static void progress_add(struct progress *ctx, unsigned long val)
+{
+	ctx->pos += val;
+	progress_step((float) ctx->pos / (float) ctx->max);
+}
+
+static void progress_start()
+{
+	if (isatty(STDERR_FILENO) == 0) {
+		errno = 0;
+		return;
+	}
+
+	signal(SIGWINCH, progress_init);
+	signal(SIGINT, progress_abort);
+	signal(SIGKILL, progress_abort);
+	progress_init();
+	initialized = 1;
+	progress_step(0);
+}
+
+static void progress_stop()
 {
 	if (isatty(STDERR_FILENO) == 0) {
 		errno = 0;
@@ -92,4 +103,25 @@ void progress_stop()
 	}
 
 	progress_set_window_height(w.ws_row);
+}
+
+struct progress *progress_alloc(unsigned long max)
+{
+	struct progress *progress;
+
+	progress = malloc(sizeof(*progress));
+	if (progress == NULL)
+		return NULL;
+
+	progress->max = max;
+	progress->pos = 0;
+	progress->add = progress_add;
+
+	return progress;
+}
+
+void progress_drop(struct progress *progress)
+{
+	progress_stop(progress);
+	free(progress);
 }

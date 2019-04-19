@@ -9,10 +9,7 @@ struct progress {
 	void (*add)(struct progress *ctx, unsigned long val);
 };
 
-void progress_add(struct progress *ctx, unsigned long val);
-
-void progress_start(void);
-void progress_step(float progress);
-void progress_stop(void);
+struct progress *progress_alloc(unsigned long max);
+void progress_drop(struct progress *progress);
 
 #endif /* __PROGRESS_H */
