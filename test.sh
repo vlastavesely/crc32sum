@@ -52,6 +52,13 @@ if ! test -z "$output"; then
 	exit 1
 fi
 
+output=$(./$binary -c check -s)
+echo "$output"
+if ! test -z "$output"; then
+	echo "\033[31merror: argument '--status' not working.\033[0m"
+	exit 1
+fi
+
 sum=$(echo -n "hello" | ./$binary)
 if ! test x"$sum" = x"3610a686"; then
 	echo "\033[31merror: STDIN checksum generation failed.\033[0m"

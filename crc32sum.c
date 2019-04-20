@@ -25,12 +25,13 @@ static const char *usage_str =
 	"  -p, --progress   show a progressbar\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
-	"  -q, --quiet      don't print any output\n"
+	"  -q, --quiet      don't print OK for each successfully verified file\n"
+	"  -s, --status     don't output anything, status code shows success\n"
 	"\n"
 	"      --help       display this help and exit\n"
 	"      --version    output version information and exit\n";
 
-static const char *short_opts = "hvc:qrp";
+static const char *short_opts = "hvc:qrps";
 
 static const struct option long_opts[] = {
 	{"help",       no_argument,        0, 'h'},
@@ -39,6 +40,7 @@ static const struct option long_opts[] = {
 	{"quiet",      no_argument,        0, 'q'},
 	{"recursive",  no_argument,        0, 'r'},
 	{"progress",   no_argument,        0, 'p'},
+	{"status",     no_argument,        0, 's'},
 	{0, 0, 0, 0}
 };
 
@@ -70,6 +72,9 @@ static void errno_to_error(int err, const char *path)
 	case ENOENT:
 		error("'%s' not found.", path);
 		break;
+	case EACCES:
+		error("do not have access to '%s'.");
+		break;
 	case EINVAL:
 		error("'%s' is not regular file.", path);
 		break;
@@ -96,7 +101,7 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 		path = walk->path;
 		checksum = crc32_file(path, progress);
 		if (checksum == 0 && errno) {
-			errno_to_error(errno, path);
+			errno_to_error(-errno, path);
 			retval++;
 		} else {
 			fprintf(stdout, "%08x  %s\n", checksum, path);
@@ -181,9 +186,10 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 		if (sum == 0 && errno) {
 			error("failed to compute CRC of '%s'.", walk->path);
 		} else if (sum != (unsigned long) walk->userdata) {
-			fprintf(stdout, "%s: FAILED\n", walk->path);
+			if ((flags & CRC32SUM_STATUS) == 0)
+				fprintf(stdout, "%s: FAILED\n", walk->path);
 			retval++;
-		} else if ((flags & CRC32SUM_QUIET) == 0) {
+		} else if ((flags & (CRC32SUM_QUIET | CRC32SUM_STATUS)) == 0) {
 			fprintf(stdout, "%s: OK\n", walk->path);
 		}
 	}
@@ -223,6 +229,9 @@ int main(int argc, char *const *argv)
 			break;
 		case 'p':
 			flags |= CRC32SUM_PROGRESS;
+			break;
+		case 's':
+			flags |= CRC32SUM_STATUS;
 			break;
 		case 0:
 		case '?':
