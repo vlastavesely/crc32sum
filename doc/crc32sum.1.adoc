@@ -1,0 +1,53 @@
+crc32sum(1)
+===========
+:manmanual: crc32sum
+
+NAME
+----
+crc32sum - compute and check CRC32 message checksums
+
+
+SYNOPSIS
+--------
+--------------------------------------------------------------------------------
+crc32sum [OPTION]... [FILE]...
+--------------------------------------------------------------------------------
+
+OPTIONS
+-------
+*-h*::
+show help and exit
+
+*-v*::
+show version number and exit
+
+*-c*, *--check*::
+read CRC32 sums from the FILE and check them
+
+*-r*, *--recursive*::
+generate CRC32 sums for all files in given directories
+
+*-p*, *--progress*::
+show a progressbar
+
+The following options are useful only when verifying checksums:
+
+*-q*, *--quiet*::
+don't print any output
+
+
+COPYRIGHT
+---------
+Copyright (c) 2019  Vlasta Vesely
+
+
+LICENSING AND WARRANTY
+----------------------
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2 as published
+by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
