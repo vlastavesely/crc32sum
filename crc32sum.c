@@ -25,7 +25,7 @@ static const char *usage_str =
 	"  -p, --progress   show a progressbar\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
-	"      --quiet      don't print any output\n"
+	"  -q, --quiet      don't print any output\n"
 	"\n"
 	"      --help       display this help and exit\n"
 	"      --version    output version information and exit\n";
@@ -64,32 +64,49 @@ void error(const char *err, ...)
 	va_end(params);
 }
 
-static int do_file_checksum(const char *filename, struct progress *progress)
+static void errno_to_error(int err, const char *path)
 {
-	unsigned int checksum;
+	switch (-err) {
+	case ENOENT:
+		error("'%s' not found.", path);
+		break;
+	case EINVAL:
+		error("'%s' is not regular file.", path);
+		break;
+	case EISDIR:
+		error("'%s' is a directory.", path);
+		break;
+	default:
+		error("cannot open '%s': error %d.", path, err);
+	}
+}
 
-	checksum = crc32_file(filename, progress);
-	if (checksum == 0 && errno) {
-		switch (errno) {
-		case ENOENT:
-			error("'%s' not found.", filename);
-			break;
-		case EISDIR:
-			error("'%s' is a directory.", filename);
-			break;
-		case EACCES:
-			error("do not have access to '%s'.", filename);
-			break;
-		default:
-			error("cannot open '%s': error %d.", filename, errno);
-			break;
+static int queue_compute_checksums(struct queue *queue, unsigned int flags)
+{
+	struct file *walk;
+	struct progress *progress = NULL;
+	unsigned int checksum;
+	const char *path;
+	int retval = 0;
+
+	if (flags & CRC32SUM_PROGRESS)
+		progress = progress_alloc(queue->nbytes);
+
+	for (walk = queue->head; walk; walk = walk->next) {
+		path = walk->path;
+		checksum = crc32_file(path, progress);
+		if (checksum == 0 && errno) {
+			errno_to_error(errno, path);
+			retval++;
+		} else {
+			fprintf(stdout, "%08x  %s\n", checksum, path);
 		}
-		return -errno;
 	}
 
-	fprintf(stdout, "%08x  %s\n", checksum, filename);
+	if (progress)
+		progress_drop(progress);
 
-	return 0;
+	return retval;
 }
 
 static int do_stdin_checksum()
@@ -109,7 +126,7 @@ static int do_stdin_checksum()
 	return 0;
 }
 
-static void trim_trailing_newlines(char *str)
+static inline void trim_trailing_newlines(char *str)
 {
 	char *last = str + strlen(str) - 1;
 
@@ -117,64 +134,17 @@ static void trim_trailing_newlines(char *str)
 		*(last--) = '\0';
 }
 
-static int do_file_checksum_check(const char *path, unsigned int expected,
-				  struct progress *progress)
-{
-	unsigned int checksum = crc32_file(path, progress);
-	int saved_errno;
-
-	if (checksum == 0 && errno) {
-		saved_errno = errno;
-		error("failed to compute CRC of '%s'.", path);
-		return -saved_errno;
-	}
-
-	return checksum == expected ? 0 : -1;
-}
-
-static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
-{
-	struct file *walk;
-	struct progress *progress = NULL;
-	int retval = 0;
-
-	if (flags & CRC32SUM_PROGRESS)
-		progress = progress_alloc(queue->nbytes);
-
-	for (walk = queue->head; walk; walk = walk->next) {
-		if (do_file_checksum_check(walk->path,
-					   (unsigned long) walk->userdata,
-					   progress) == 0) {
-			if ((flags & CRC32SUM_QUIET) == 0)
-				fprintf(stdout, "%s: OK\n", walk->path);
-		} else {
-			retval++;
-			fprintf(stdout, "%s: FAILED\n", walk->path);
-		}
-	}
-
-	if (progress)
-		progress_drop(progress);
-
-	return retval;
-}
-
-static int do_check(const char *filename, unsigned int flags)
+static int parse_sum_file(struct queue *queue, const char *filename)
 {
 	FILE *fp;
 	char *line = NULL, *path;
 	size_t len = 0;
 	ssize_t n = 0;
-	int retval = 0;
-	struct queue queue;
+	int retval;
 
 	fp = fopen(filename, "r");
-	if (fp == NULL) {
-		error("failed to open '%s'.", filename);
-		return 1;
-	}
-
-	queue_init(&queue);
+	if (fp == NULL)
+		return -errno;
 
 	while (1) {
 		n = getline(&line, &len, fp);
@@ -185,30 +155,38 @@ static int do_check(const char *filename, unsigned int flags)
 
 		path = line + 10;
 		trim_trailing_newlines(path);
-
-		queue_schedule_regular_file(&queue, path, (void *) strtol(line, NULL, 16));
+		retval = queue_schedule_regular_file(queue, path, (void *) strtol(line, NULL, 16));
+		if (retval)
+			errno_to_error(retval, path);
 	}
 
-	retval = queue_do_checksums_check(&queue, flags);
-
-	queue_clear(&queue);
 	free(line);
 	fclose(fp);
 
-	return retval;
+	return 0;
 }
 
-static int queue_do_checksums(struct queue *queue, unsigned int flags)
+static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 {
 	struct file *walk;
 	struct progress *progress = NULL;
+	unsigned int sum;
 	int retval = 0;
 
 	if (flags & CRC32SUM_PROGRESS)
 		progress = progress_alloc(queue->nbytes);
 
-	for (walk = queue->head; walk; walk = walk->next)
-		retval += do_file_checksum(walk->path, progress);
+	for (walk = queue->head; walk; walk = walk->next) {
+		sum = crc32_file(walk->path, progress);
+		if (sum == 0 && errno) {
+			error("failed to compute CRC of '%s'.", walk->path);
+		} else if (sum != (unsigned long) walk->userdata) {
+			fprintf(stdout, "%s: FAILED\n", walk->path);
+			retval++;
+		} else if ((flags & CRC32SUM_QUIET) == 0) {
+			fprintf(stdout, "%s: OK\n", walk->path);
+		}
+	}
 
 	if (progress)
 		progress_drop(progress);
@@ -230,11 +208,9 @@ int main(int argc, char *const *argv)
 		switch (c) {
 		case 'v':
 			show_version();
-			retval = 0;
 			goto out;
 		case 'h':
 			show_usage();
-			retval = 0;
 			goto out;
 		case 'c':
 			check = optarg;
@@ -260,8 +236,14 @@ int main(int argc, char *const *argv)
 
 	crc32_initialize();
 
+	queue_init(&queue);
+
 	if (check) {
-		retval = do_check(check, flags);
+		retval = parse_sum_file(&queue, check);
+		if (retval != 0)
+			error("failed to load '%s'", check);
+
+		retval = queue_do_checksums_check(&queue, flags);
 		goto out;
 	}
 
@@ -270,28 +252,20 @@ int main(int argc, char *const *argv)
 		goto out;
 	}
 
-	queue_init(&queue);
-
 	if (optind < argc) {
 		while (optind < argc) {
 			path = argv[optind++];
 			retval = queue_schedule_path(&queue, path, flags);
-
-			switch (-retval) {
-			case 0:
-				break;
-			case EISDIR:
-				error("'%s' is a directory.", path);
-				goto out;
-			default:
-				queue_clear(&queue);
+			if (retval) {
+				errno_to_error(retval, path);
 				goto out;
 			}
 		}
 	}
 
-	queue_do_checksums(&queue, flags);
+	retval = queue_compute_checksums(&queue, flags);
 
 out:
+	queue_clear(&queue);
 	return retval;
 }
