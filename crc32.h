@@ -14,13 +14,13 @@
  * ehen #CRC32_AUTOINIT macro is defined, initialization is run automatically.
  *
  * On success, functions crc32_fd() and crc32_file() return computed checksum,
- * 0 is returned on error, and errno is set appropriately.
+ * -1 is returned on error.
  */
 
 /* #define CRC32_AUTOINIT */
 
 void crc32_initialize(void);
-unsigned int crc32_fd(int fd, struct progress *progress);
-unsigned int crc32_file(const char *filename, struct progress *progress);
+long crc32_fd(int fd, struct progress *progress);
+long crc32_file(const char *filename, struct progress *progress);
 
 #endif /* __CRC32_H */

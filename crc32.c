@@ -141,7 +141,7 @@ static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
 	return ~crc;
 }
 
-unsigned int crc32_fd(int fd, struct progress *progress)
+long crc32_fd(int fd, struct progress *progress)
 {
 	unsigned char buffer[BUFSIZE];
 	unsigned int checksum = 0;
@@ -152,12 +152,10 @@ unsigned int crc32_fd(int fd, struct progress *progress)
 		crc32_initialize();
 	#endif
 
-	errno = 0;
 	while (1) {
 		n = read(fd, buffer, sizeof(buffer));
-
 		if (n == -1)
-			return 0;
+			return -1;
 		if (n == 0)
 			break;
 
@@ -169,13 +167,12 @@ unsigned int crc32_fd(int fd, struct progress *progress)
 	return checksum;
 }
 
-unsigned int crc32_file(const char *filename, struct progress *progress)
+long crc32_file(const char *filename, struct progress *progress)
 {
 	struct stat st;
 	unsigned int checksum;
-	int fd, saved_errno;
+	int fd;
 
-	errno = 0;
 	if (stat(filename, &st) != 0)
 		goto err;
 
@@ -189,10 +186,8 @@ unsigned int crc32_file(const char *filename, struct progress *progress)
 		goto err;
 
 	checksum = crc32_fd(fd, progress);
-	if (errno) {
-		saved_errno = errno;
+	if (checksum == -1) {
 		close(fd);
-		errno = saved_errno;
 		goto err;
 	}
 
@@ -200,5 +195,5 @@ unsigned int crc32_file(const char *filename, struct progress *progress)
 	return checksum;
 
 err:
-	return 0;
+	return -1;
 }
