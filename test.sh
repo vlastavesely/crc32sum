@@ -24,16 +24,6 @@ b2eb30ed  ./test/big"; then
 	exit 1
 fi
 
-output=$(./$binary -c check)
-if ! test x"$output" = x"\
-./test/hello: OK
-./test/world: OK
-./test/zeroes: OK
-./test/big: OK"; then
-	echo "\033[31merror: checksum verification failed.\033[0m"
-	exit 1
-fi
-
 output=$(./$binary -r test)
 
 # The files may not be ordered.
@@ -46,6 +36,18 @@ then
 	exit 1
 fi
 
+# ==============================================================================
+
+output=$(./$binary -c check)
+if ! test x"$output" = x"\
+./test/hello: OK
+./test/world: OK
+./test/zeroes: OK
+./test/big: OK"; then
+	echo "\033[31merror: checksum verification failed.\033[0m"
+	exit 1
+fi
+
 output=$(./$binary -c check -q)
 if ! test -z "$output"; then
 	echo "\033[31merror: argument '--quiet' not working.\033[0m"
@@ -53,11 +55,23 @@ if ! test -z "$output"; then
 fi
 
 output=$(./$binary -c check -s)
-echo "$output"
 if ! test -z "$output"; then
 	echo "\033[31merror: argument '--status' not working.\033[0m"
 	exit 1
 fi
+
+output=$(./$binary -r test | ./$binary -c -)
+# The files may not be ordered.
+if test -z "$(echo "$output" | grep 'test/big: OK' | cat)" ||	\
+   test -z "$(echo "$output" | grep 'test/hello: OK' | cat)" ||	\
+   test -z "$(echo "$output" | grep 'test/world: OK' | cat)" ||	\
+   test -z "$(echo "$output" | grep 'test/zeroes: OK' | cat)"
+then
+	echo "\033[31merror: checking of checksums read from STDIN.\033[0m"
+	exit 1
+fi
+
+# ==============================================================================
 
 sum=$(echo -n "hello" | ./$binary)
 if ! test x"$sum" = x"3610a686"; then

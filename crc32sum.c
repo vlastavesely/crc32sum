@@ -147,7 +147,10 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 	ssize_t n = 0;
 	int retval;
 
-	fp = fopen(filename, "r");
+	if (strcmp(filename, "-") == 0)
+		fp = fdopen(STDIN_FILENO, "r");
+	else
+		fp = fopen(filename, "r");
 	if (fp == NULL)
 		return -errno;
 
