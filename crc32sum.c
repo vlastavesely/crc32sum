@@ -90,7 +90,7 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 {
 	struct file *walk;
 	struct progress *progress = NULL;
-	unsigned int checksum;
+	long checksum;
 	const char *path;
 	int retval = 0;
 
@@ -100,11 +100,11 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 	for (walk = queue->head; walk; walk = walk->next) {
 		path = walk->path;
 		checksum = crc32_file(path, progress);
-		if (checksum == -1) {
-			errno_to_error(-errno, path);
+		if (checksum < 0) {
+			errno_to_error(checksum, path);
 			retval++;
 		} else {
-			fprintf(stdout, "%08x  %s\n", checksum, path);
+			fprintf(stdout, "%08x  %s\n", (unsigned) checksum, path);
 		}
 	}
 
@@ -116,17 +116,15 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 
 static int do_stdin_checksum()
 {
-	unsigned int checksum;
-	int saved_errno;
+	long checksum;
 
 	checksum = crc32_fd(STDIN_FILENO, NULL);
-	if (checksum == -1) {
-		saved_errno = errno;
+	if (checksum < 0) {
 		error("failed to read from stdin");
-		return -saved_errno;
+		return checksum;
 	}
 
-	fprintf(stdout, "%08x\n", checksum);
+	fprintf(stdout, "%08x\n", (unsigned) checksum);
 
 	return 0;
 }
@@ -178,7 +176,7 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 {
 	struct file *walk;
 	struct progress *progress = NULL;
-	unsigned int sum;
+	long sum;
 	int retval = 0;
 
 	if (flags & CRC32SUM_PROGRESS)
@@ -186,7 +184,7 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 
 	for (walk = queue->head; walk; walk = walk->next) {
 		sum = crc32_file(walk->path, progress);
-		if (sum == -1) {
+		if (sum < 0) {
 			error("failed to compute CRC of '%s'.", walk->path);
 		} else if (sum != (unsigned long) walk->userdata) {
 			if ((flags & CRC32SUM_STATUS) == 0)

@@ -13,8 +13,9 @@
  * responsibility to call crc32_initialize() function manually. Alternatively,
  * ehen #CRC32_AUTOINIT macro is defined, initialization is run automatically.
  *
- * On success, functions crc32_fd() and crc32_file() return computed checksum,
- * -1 is returned on error.
+ * On success, functions crc32_fd() and crc32_file() return a positive number
+ * representing computed checksum. On error, a negative error code is returned.
+ * Error codes correspond to errno(3).
  */
 
 /* #define CRC32_AUTOINIT */

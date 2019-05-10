@@ -155,7 +155,7 @@ long crc32_fd(int fd, struct progress *progress)
 	while (1) {
 		n = read(fd, buffer, sizeof(buffer));
 		if (n == -1)
-			return -1;
+			return -errno;
 		if (n == 0)
 			break;
 
@@ -174,26 +174,17 @@ long crc32_file(const char *filename, struct progress *progress)
 	int fd;
 
 	if (stat(filename, &st) != 0)
-		goto err;
+		return -errno;
 
-	if (S_ISDIR(st.st_mode)) {
-		errno = EISDIR;
-		goto err;
-	}
+	if (S_ISDIR(st.st_mode))
+		return -EISDIR;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
-		goto err;
+		return -errno;
 
 	checksum = crc32_fd(fd, progress);
-	if (checksum == -1) {
-		close(fd);
-		goto err;
-	}
-
 	close(fd);
-	return checksum;
 
-err:
-	return -1;
+	return checksum;
 }
