@@ -13,7 +13,7 @@
 
 
 static int queue_schedule_file(struct queue *queue, const char *path,
-				unsigned int size, void *userdata)
+				unsigned long size, void *userdata)
 {
 	struct file *file;
 
