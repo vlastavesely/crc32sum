@@ -1,100 +1,75 @@
 #!/bin/sh
 set -e
 
-binary=crc32sum
+bin=crc32sum
 
-test -f $binary || make
+test -f $bin || make
+cd tests
 
-rm -rf ./test && mkdir ./test
+# ** Computation ***************************************************************
 
-echo -n "hello" >./test/hello
-echo -n "world" >./test/world
-dd if=/dev/zero of=./test/zeroes bs=1024 count=7 2>/dev/null
-dd if=/dev/zero of=./test/big bs=8192 count=8192 2>/dev/null
-
-./$binary ./test/hello ./test/world ./test/zeroes ./test/big >check
-
-content=$(cat check)
-if ! test x"$content" = x"\
-3610a686  ./test/hello
-3a771143  ./test/world
-309137d4  ./test/zeroes
-b2eb30ed  ./test/big"; then
-	echo "\033[31merror: checksum generation failed.\033[0m"
+# Single files checksums
+output="$(./../$bin a b)"
+test "x$output" = "x$(echo '5ecfe3c5  a\n6f27f958  b')" || {
+	echo >&2 "fatal: single file checksum computation failed."
 	exit 1
-fi
+}
 
-output=$(./$binary -r test)
-
-# The files may not be ordered.
-if test -z "$(echo "$output" | grep 'b2eb30ed  test/big' | cat)" ||	\
-   test -z "$(echo "$output" | grep '3610a686  test/hello' | cat)" ||	\
-   test -z "$(echo "$output" | grep '3a771143  test/world' | cat)" ||	\
-   test -z "$(echo "$output" | grep '309137d4  test/zeroes' | cat)"
-then
-	echo "\033[31merror: argument '--recursive' not working.\033[0m"
+# Recursive checksums
+output="$(./../$bin -r dir | sort)"
+test "x$output" = "x$(echo '0cf7cc62  dir/d\nc950f2ec  dir/c')" || {
+	echo >&2 "fatal: recursive checksum computation failed."
 	exit 1
-fi
+}
 
-# ==============================================================================
-
-output=$(./$binary -c check)
-if ! test x"$output" = x"\
-./test/hello: OK
-./test/world: OK
-./test/zeroes: OK
-./test/big: OK"; then
-	echo "\033[31merror: checksum verification failed.\033[0m"
+output="$(echo -n hello | ./../$bin)"
+test "x$output" = "x3610a686" || {
+	echo >&2 "fatal: STDIN checksum generation failed."
 	exit 1
-fi
+}
 
-output=$(./$binary -c check -q)
-if ! test -z "$output"; then
-	echo "\033[31merror: argument '--quiet' not working.\033[0m"
+# ** Errors ********************************************************************
+
+output="$(./../$bin dir 2>&1 || true)"
+test "x$output" = "xcrc32sum: 'dir' is a directory." || {
+	echo >&2 "fatal: crc of a dir should not be computed."
+	exit 1	
+}
+
+# ** Checking ******************************************************************
+
+# Quiet verification
+output="$(./../$bin -q -c badsums.txt || true)"
+test "x$output" = "x./a: FAILED" || {
+	echo >&2 "fatal: test of '-q' argument failed."
 	exit 1
-fi
+}
 
-output=$(./$binary -c check -s)
-if ! test -z "$output"; then
-	echo "\033[31merror: argument '--status' not working.\033[0m"
+# Silent verification
+output="$(./../$bin -s -c badsums.txt || true)"
+test -z "$output" || {
+	echo >&2 "fatal: test of '-s' argument failed."
 	exit 1
-fi
+}
 
-output=$(./$binary -r test | ./$binary -c -)
-# The files may not be ordered.
-if test -z "$(echo "$output" | grep 'test/big: OK' | cat)" ||	\
-   test -z "$(echo "$output" | grep 'test/hello: OK' | cat)" ||	\
-   test -z "$(echo "$output" | grep 'test/world: OK' | cat)" ||	\
-   test -z "$(echo "$output" | grep 'test/zeroes: OK' | cat)"
-then
-	echo "\033[31merror: checking of checksums read from STDIN.\033[0m"
+# Normal usage - the sum file is in the working directory:
+./../$bin -c sums.crlf.txt >/dev/null || {
+	echo >&2 "fatal: sums.crlf.txt - verification failed."
 	exit 1
-fi
+}
 
-# ==============================================================================
-
-sum=$(echo -n "hello" | ./$binary)
-if ! test x"$sum" = x"3610a686"; then
-	echo "\033[31merror: STDIN checksum generation failed.\033[0m"
+./../$bin -c sums.lf.txt >/dev/null || {
+	echo >&2 "fatal: sums.lf.txt - verification failed."
 	exit 1
-fi
+}
 
-output=$(./$binary test 2>&1 | cat)
-if ! test x"$output" = x"crc32sum: 'test' is a directory."
-then
-	echo "\033[31merror: directory sum test failed.\033[0m"
+# Relative path to the sum file:
+cd ..
+./$bin -c tests/sums.lf.txt >/dev/null || {
+	echo >&2 "fatal: relative path verification failed."
 	exit 1
-fi
+}
 
-chmod 0000 test/hello
-output=$(./$binary test/hello 2>&1 | cat)
-if ! test x"$output" = x"crc32sum: do not have access to 'test/hello'."
-then
-	echo "\033[31merror: inaccessible file sum test failed.\033[0m"
-	exit 1
-fi
-
-rm -f ./check
-rm -rf ./test
+# ******************************************************************************
 
 echo "\033[32msuccess\033[0m"
