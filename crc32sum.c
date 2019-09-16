@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <errno.h>
+#include <libgen.h>
 
 #include "crc32.h"
 #include "queue.h"
@@ -140,9 +141,10 @@ static inline void trim_trailing_newlines(char *str)
 static int parse_sum_file(struct queue *queue, const char *filename)
 {
 	FILE *fp;
-	char *line = NULL, *path;
+	char *line = NULL, *path, *tmp, *dir, *p;
 	size_t len = 0;
 	ssize_t n = 0;
+	unsigned int bufsize;
 	int retval;
 
 	if (strcmp(filename, "-") == 0)
@@ -151,6 +153,9 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 		fp = fopen(filename, "r");
 	if (fp == NULL)
 		return -errno;
+
+	tmp = strdup(filename);
+	dir = dirname(tmp);
 
 	while (1) {
 		n = getline(&line, &len, fp);
@@ -161,12 +166,25 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 
 		path = line + 10;
 		trim_trailing_newlines(path);
-		retval = queue_schedule_regular_file(queue, path, (void *) strtol(line, NULL, 16));
+
+		if (*dir == '.' && *(dir + 1) == '\0') {
+			p = path;
+		} else {
+			bufsize = strlen(dir) + strlen(path) + 5;
+			p = malloc(bufsize);
+			snprintf(p, bufsize, "%s/%s", dir, path);
+		}
+
+		retval = queue_schedule_regular_file(queue, p, (void *) strtol(line, NULL, 16));
+		if (p != path)
+			free(p);
+
 		if (retval)
 			errno_to_error(retval, path);
 	}
 
 	free(line);
+	free(tmp);
 	fclose(fp);
 
 	return 0;
@@ -209,6 +227,8 @@ int main(int argc, char *const *argv)
 	const char *check = NULL, *path = NULL;
 	struct queue queue;
 
+	queue_init(&queue);
+
 	while (c != -1) {
 		c = getopt_long(argc, argv, short_opts, long_opts, &opt_index);
 
@@ -245,8 +265,6 @@ int main(int argc, char *const *argv)
 	}
 
 	crc32_initialize();
-
-	queue_init(&queue);
 
 	if (check) {
 		retval = parse_sum_file(&queue, check);
