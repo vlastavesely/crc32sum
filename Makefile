@@ -15,7 +15,7 @@ all: $(TARGET) doc/$(TARGET).1.gz
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) $^ -o $(TARGET)
 
-doc/$(TARGET).1.gz: doc/$(TARGET).1.adoc
+doc/%.1.gz: doc/%.1.adoc
 	asciidoctor -d manpage -b manpage $< -o $(<:.adoc=) && gzip -f $(<:.adoc=)
 
 install:
