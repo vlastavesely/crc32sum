@@ -1,13 +1,22 @@
-PREFIX=/usr
-TARGET=crc32sum
-CFLAGS=-Ofast -Wall
+SHELL  = /bin/sh
+CC     = gcc
 
-SRCFILES := $(shell find . -type f -name "*.c")
-OBJFILES := $(patsubst %.c, %.o, $(SRCFILES))
+TARGET = crc32sum
+CFLAGS = -Ofast -Wall
+
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+MANDIR = $(PREFIX)/share/man
+
+SRCFILES = $(shell find . -type f -name "*.c")
+OBJFILES = $(patsubst %.c, %.o, $(SRCFILES))
+
 
 .PHONY: all install uninstall test clean
 
-all: $(TARGET) doc/$(TARGET).1.gz
+all: $(TARGET) $(TARGET).1.gz
+
+include $(wildcard *.d)
 
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
@@ -15,19 +24,19 @@ all: $(TARGET) doc/$(TARGET).1.gz
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) $^ -o $(TARGET)
 
-doc/%.1.gz: doc/%.1.adoc
-	asciidoctor -d manpage -b manpage $< -o $(<:.adoc=) && gzip -f $(<:.adoc=)
+%.1.gz: %.1
+	cat $< | gzip -f >$@
 
 install:
-	install -m 0755 $(TARGET) $(PREFIX)/bin/$(TARGET)
-	install -m 644 doc/$(TARGET).1.gz $(PREFIX)/share/man/man1
+	install -m 0755 $(TARGET) $(BINDIR)
+	install -m 644 $(TARGET).1.gz $(MANDIR)/man1
 
 uninstall:
-	rm -rf $(PREFIX)/bin/$(TARGET)
-	rm -f $(PREFIX)/share/man/man1/$(TARGET).1.gz
+	rm -rf $(BINDIR)/$(TARGET)
+	rm -f $(MANDIR)/man1/$(TARGET).1.gz
 
 test: $(TARGET)
 	sh test.sh
 
 clean:
-	$(RM) $(TARGET) *.o *.d doc/*.gz
+	$(RM) $(TARGET) *.o *.d *.1.gz

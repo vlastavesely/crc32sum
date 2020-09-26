@@ -1,4 +1,4 @@
 /crc32sum
 /*.o
 /*.d
-/doc/*.gz
+*.1.gz
