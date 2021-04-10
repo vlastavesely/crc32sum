@@ -1,18 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <errno.h>
-#include <libgen.h>
-
-#include "crc32.h"
-#include "queue.h"
-
+#include "compat.h"
 #include "crc32sum.h"
+#include "crc32.h"
+#include "utils.h"
+#include "queue.h"
+#include "progress.h"
 
 static const char *usage_str =
 	"usage: " PROGNAME " [OPTION]... [FILE]...\n"
@@ -254,7 +247,6 @@ int main(int argc, char *const *argv)
 		case 's':
 			flags |= CRC32SUM_STATUS;
 			break;
-		case 0:
 		case '?':
 			show_usage();
 			retval = 1;

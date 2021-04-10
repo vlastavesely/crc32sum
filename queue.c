@@ -1,16 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <errno.h>
-
+#include "compat.h"
 #include "crc32sum.h"
 #include "queue.h"
-
 
 static int queue_schedule_file(struct queue *queue, const char *path,
 				unsigned long size, void *userdata)

@@ -6,15 +6,12 @@
  * Source: https://github.com/chromium/chromium/blob/master/third_party/zlib/crc32_simd.c
  */
 
+#include "compat.h"
+#include "crc32.h"
+
 #include <emmintrin.h>
 #include <smmintrin.h>
 #include <wmmintrin.h>
-#include <stdint.h>
-#include "crc32.h"
-
-#ifndef ALIGN
-#define ALIGN(n) __attribute__((aligned(n)))
-#endif
 
 static const uint64_t ALIGN(16) k1k2[] = {0x0154442bd4, 0x01c6e41596};
 static const uint64_t ALIGN(16) k3k4[] = {0x01751997d0, 0x00ccaa009e};

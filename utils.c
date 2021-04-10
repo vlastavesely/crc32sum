@@ -1,13 +1,6 @@
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include "compat.h"
 #include "utils.h"
 #include "progress.h"
-
-#define HAVE_SSE41 1 /* FIXME */
 
 #ifdef HAVE_SSE41
 #include "crc32-simd.h"
