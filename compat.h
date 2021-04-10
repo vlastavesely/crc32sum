@@ -17,7 +17,7 @@
 #include <dirent.h>
 #include <errno.h>
 
-#define HAVE_SSE41 1 /* FIXME */
+#include "config.h"
 
 #ifndef ALIGN
 #define ALIGN(n) __attribute__((aligned(n)))

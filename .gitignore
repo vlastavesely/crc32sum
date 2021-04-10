@@ -2,3 +2,12 @@
 /*.o
 /*.d
 *.1.gz
+
+/Makefile
+/configure
+/aclocal.m4
+/install-sh
+/config.h*
+/*.status
+/*.cache
+/*.log

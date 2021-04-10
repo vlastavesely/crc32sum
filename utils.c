@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "progress.h"
 
-#ifdef HAVE_SSE41
+#ifdef HAVE_SSE4_1_INSTRUCTIONS
 #include "crc32-simd.h"
 #define CRC32_PROCESS crc32_buffer_simd
 #else
