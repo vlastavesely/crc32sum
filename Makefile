@@ -16,10 +16,13 @@ OBJFILES = $(patsubst %.c, %.o, $(SRCFILES))
 
 all: $(TARGET) $(TARGET).1.gz
 
-include $(wildcard *.d)
+include $(wildcard *.d tests/*.d)
 
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+%-simd.o: %-simd.c Makefile
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@ -msse4.1 -mpclmul
 
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) $^ -o $(TARGET)
