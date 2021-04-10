@@ -3,25 +3,16 @@
 #ifndef __CRC32_H
 #define __CRC32_H
 
-#include "progress.h"
-
 /**
  * CRC32 checksum computation.
  *
- * WARNING: this implementation is optimized using precomputed lookup tables.
- * The tables are meant to be computed during runtime and it is user's
- * responsibility to call crc32_initialize() function manually. Alternatively,
- * ehen #CRC32_AUTOINIT macro is defined, initialization is run automatically.
- *
- * On success, functions crc32_fd() and crc32_file() return a positive number
- * representing computed checksum. On error, a negative error code is returned.
- * Error codes correspond to errno(3).
+ * WARNING: this implementation is optimised using precomputed lookup tables.
+ * The tables are meant to be computed during the runtime and it is the user's
+ * responsibility to call the crc32_initialise() function manually.
  */
 
-/* #define CRC32_AUTOINIT */
-
-void crc32_initialize(void);
-long crc32_fd(int fd, struct progress *progress);
-long crc32_file(const char *filename, struct progress *progress);
+void crc32_initialise(void);
+unsigned int crc32_buffer(const unsigned char *buf, unsigned int len,
+			  unsigned int crc);
 
 #endif /* __CRC32_H */

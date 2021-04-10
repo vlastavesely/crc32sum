@@ -1,16 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "crc32.h"
 
-#define BUFSIZE 1 << 20 /* 1M */
-
-/* Precomputed lookup table for CRC computed with 0xedb88320 polynomial. */
+/*
+ * Precomputed lookup table for CRC computed with 0xedb88320 polynomial.
+ */
 static unsigned int poly8_lookup[256] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
 	0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -80,13 +74,13 @@ static unsigned int poly8_lookup[256] = {
 
 static unsigned int crc32_lookup[16][256];
 
-static int crc32_initialized = 0;
+static int crc32_initialised = 0;
 
-void crc32_initialize(void)
+void crc32_initialise(void)
 {
 	unsigned int i, j;
 
-	if (crc32_initialized == 1)
+	if (crc32_initialised == 1)
 		return;
 
 	for (i = 0; i < 256; i++)
@@ -97,16 +91,14 @@ void crc32_initialize(void)
 			crc32_lookup[j][i] = (crc32_lookup[j - 1][i] >> 8) ^
 				crc32_lookup[0][crc32_lookup[j - 1][i] & 0xff];
 
-	crc32_initialized = 1;
+	crc32_initialised = 1;
 }
 
-static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
-				 unsigned int crc)
+unsigned int crc32_buffer(const unsigned char *data, unsigned int nbytes,
+			  unsigned int crc)
 {
 	unsigned int *ptr = (unsigned int *) data;
 	unsigned int a, b, c, d;
-
-	crc = ~crc;
 
 	while (nbytes >= 16) {
 		a = (*ptr++) ^ crc;
@@ -138,53 +130,5 @@ static unsigned int crc32_buffer(unsigned char *data, unsigned int nbytes,
 	while (nbytes--)
 		crc = crc32_lookup[0][((unsigned char) crc ^ *(data++))] ^ (crc >> 8);
 
-	return ~crc;
-}
-
-long crc32_fd(int fd, struct progress *progress)
-{
-	unsigned char buffer[BUFSIZE];
-	unsigned int checksum = 0;
-	int n = 0;
-
-	#ifdef CRC32_AUTOINIT
-	if (crc32_initialized == 0)
-		crc32_initialize();
-	#endif
-
-	while (1) {
-		n = read(fd, buffer, sizeof(buffer));
-		if (n == -1)
-			return -errno;
-		if (n == 0)
-			break;
-
-		checksum = crc32_buffer(buffer, n, checksum);
-		if (progress)
-			progress->add(progress, n);
-	}
-
-	return checksum;
-}
-
-long crc32_file(const char *filename, struct progress *progress)
-{
-	struct stat st;
-	unsigned int checksum;
-	int fd;
-
-	if (stat(filename, &st) != 0)
-		return -errno;
-
-	if (S_ISDIR(st.st_mode))
-		return -EISDIR;
-
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
-		return -errno;
-
-	checksum = crc32_fd(fd, progress);
-	close(fd);
-
-	return checksum;
+	return crc;
 }

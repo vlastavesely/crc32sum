@@ -264,7 +264,7 @@ int main(int argc, char *const *argv)
 		}
 	}
 
-	crc32_initialize();
+	crc32_initialise();
 
 	if (check) {
 		retval = parse_sum_file(&queue, check);
