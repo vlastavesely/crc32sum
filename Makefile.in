@@ -29,7 +29,7 @@ endif
 
 all: $(PROGNAME) $(PROGNAME).1.gz
 
-include $(wildcard *.d tests/*.d)
+include $(wildcard *.d)
 
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
@@ -38,7 +38,7 @@ include $(wildcard *.d tests/*.d)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@ -msse4.1 -mpclmul
 
 $(PROGNAME): $(OBJFILES)
-	$(CC) $(CFLAGS) $^ -o $(PROGNAME)
+	$(CC) $^ -o $(PROGNAME)
 
 %.1.gz: %.1
 	cat $< | gzip -f >$@

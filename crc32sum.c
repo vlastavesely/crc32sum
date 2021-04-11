@@ -94,6 +94,7 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 	for (i = 0; i < queue->nfiles; i++) {
 		path = queue->files[i].path;
 		checksum = crc32_file(path, progress);
+
 		if (checksum < 0) {
 			errno_to_error(checksum, path);
 			retval++;
@@ -144,6 +145,7 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 		fp = fdopen(STDIN_FILENO, "r");
 	else
 		fp = fopen(filename, "r");
+
 	if (fp == NULL)
 		return -errno;
 
@@ -197,12 +199,15 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 	for (i = 0; i < queue->nfiles; i++) {
 		file = &queue->files[i];
 		sum = crc32_file(file->path, progress);
+
 		if (sum < 0) {
 			error("failed to compute CRC of '%s'.", file->path);
+
 		} else if (sum != file->sum) {
 			if ((flags & CRC32SUM_STATUS) == 0)
 				fprintf(stdout, "%s: FAILED\n", file->path);
 			retval++;
+
 		} else if ((flags & (CRC32SUM_QUIET | CRC32SUM_STATUS)) == 0) {
 			fprintf(stdout, "%s: OK\n", file->path);
 		}
@@ -214,7 +219,7 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 	return retval;
 }
 
-int main(int argc, char *const *argv)
+int main(int argc, const char **argv)
 {
 	int c = 0, retval = 0;
 	int opt_index = 0;
@@ -225,7 +230,8 @@ int main(int argc, char *const *argv)
 	queue_init(&queue);
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, short_opts, long_opts, &opt_index);
+		c = getopt_long(argc, (char *const *) argv, short_opts,
+				long_opts, &opt_index);
 
 		switch (c) {
 		case 'v':
@@ -288,7 +294,6 @@ int main(int argc, char *const *argv)
 	}
 
 	retval = queue_compute_checksums(&queue, flags);
-
 out:
 	queue_clear(&queue);
 	return retval;

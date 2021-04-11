@@ -33,7 +33,7 @@ test "x$output" = "x3610a686" || {
 output="$(./../$bin dir 2>&1 || true)"
 test "x$output" = "xcrc32sum: 'dir' is a directory." || {
 	echo >&2 "fatal: crc of a dir should not be computed."
-	exit 1	
+	exit 1
 }
 
 # ** Checking ******************************************************************
