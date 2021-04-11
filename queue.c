@@ -5,44 +5,18 @@
 #include "queue.h"
 
 static int queue_schedule_file(struct queue *queue, const char *path,
-				unsigned long size, void *userdata)
+				unsigned long size, unsigned int sum)
 {
 	struct file *file;
 
-	file = calloc(1, sizeof(*file));
-	if (file == NULL)
-		return -ENOMEM;
+	queue->files = realloc(queue->files, (queue->nfiles + 1) * sizeof(*file));
+	file = &queue->files[queue->nfiles++];
 
 	file->path = strdup(path);
 	file->size = size;
-	file->userdata = userdata;
-
-	*queue->tail = file;
-	queue->tail = &(*queue->tail)->next;
-	queue->files++;
-	queue->nbytes += size;
+	file->sum = sum;
 
 	return 0;
-}
-
-static void file_drop(struct file *file)
-{
-	if (file == NULL)
-		return;
-
-	free(file->path);
-	free(file);
-}
-
-static void file_list_drop(struct file *head)
-{
-	struct file *walk = head, *next;
-
-	while (walk) {
-		next = walk->next;
-		file_drop(walk);
-		walk = next;
-	}
 }
 
 static inline int is_dot_or_dotdot(const char *name)
@@ -53,20 +27,19 @@ static inline int is_dot_or_dotdot(const char *name)
 
 void queue_init(struct queue *queue)
 {
-	queue->files = 0;
+	queue->files = NULL;
+	queue->nfiles = 0;
 	queue->nbytes = 0;
-	queue->head = NULL;
-	queue->tail = &queue->head;
 }
 
 void queue_clear(struct queue *queue)
 {
-	file_list_drop(queue->head);
+	free(queue->files);
 	queue_init(queue);
 }
 
 int queue_schedule_regular_file(struct queue *queue, const char *path,
-				void *userdata)
+				unsigned int sum)
 {
 	struct stat sb;
 
@@ -76,7 +49,7 @@ int queue_schedule_regular_file(struct queue *queue, const char *path,
 	if (S_ISREG(sb.st_mode) == 0)
 		return -EINVAL;
 
-	return queue_schedule_file(queue, path, sb.st_size, userdata);
+	return queue_schedule_file(queue, path, sb.st_size, sum);
 }
 
 int queue_schedule_path(struct queue *queue, const char *path,
@@ -119,7 +92,7 @@ int queue_schedule_path(struct queue *queue, const char *path,
 close_dir:
 		closedir(dir);
 	} else if (S_ISREG(sb.st_mode)) {
-		queue_schedule_file(queue, path, sb.st_size, NULL);
+		queue_schedule_file(queue, path, sb.st_size, 0);
 	} else {
 		return -EINVAL;
 	}

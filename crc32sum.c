@@ -82,17 +82,17 @@ static void errno_to_error(int err, const char *path)
 
 static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 {
-	struct file *walk;
 	struct progress *progress = NULL;
 	long checksum;
 	const char *path;
+	unsigned int i;
 	int retval = 0;
 
 	if (flags & CRC32SUM_PROGRESS)
 		progress = progress_alloc(queue->nbytes);
 
-	for (walk = queue->head; walk; walk = walk->next) {
-		path = walk->path;
+	for (i = 0; i < queue->nfiles; i++) {
+		path = queue->files[i].path;
 		checksum = crc32_file(path, progress);
 		if (checksum < 0) {
 			errno_to_error(checksum, path);
@@ -168,7 +168,7 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 			snprintf(p, bufsize, "%s/%s", dir, path);
 		}
 
-		retval = queue_schedule_regular_file(queue, p, (void *) strtol(line, NULL, 16));
+		retval = queue_schedule_regular_file(queue, p, strtol(line, NULL, 16));
 		if (p != path)
 			free(p);
 
@@ -185,24 +185,26 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 
 static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 {
-	struct file *walk;
+	struct file *file;
 	struct progress *progress = NULL;
 	long sum;
+	unsigned int i;
 	int retval = 0;
 
 	if (flags & CRC32SUM_PROGRESS)
 		progress = progress_alloc(queue->nbytes);
 
-	for (walk = queue->head; walk; walk = walk->next) {
-		sum = crc32_file(walk->path, progress);
+	for (i = 0; i < queue->nfiles; i++) {
+		file = &queue->files[i];
+		sum = crc32_file(file->path, progress);
 		if (sum < 0) {
-			error("failed to compute CRC of '%s'.", walk->path);
-		} else if (sum != (unsigned long) walk->userdata) {
+			error("failed to compute CRC of '%s'.", file->path);
+		} else if (sum != file->sum) {
 			if ((flags & CRC32SUM_STATUS) == 0)
-				fprintf(stdout, "%s: FAILED\n", walk->path);
+				fprintf(stdout, "%s: FAILED\n", file->path);
 			retval++;
 		} else if ((flags & (CRC32SUM_QUIET | CRC32SUM_STATUS)) == 0) {
-			fprintf(stdout, "%s: OK\n", walk->path);
+			fprintf(stdout, "%s: OK\n", file->path);
 		}
 	}
 

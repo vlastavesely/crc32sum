@@ -6,22 +6,20 @@
 struct file {
 	char *path;
 	unsigned long size;
-	void *userdata;
-	struct file *next;
+	unsigned int sum;
 };
 
 struct queue {
-	unsigned int files;
+	struct file *files;
+	unsigned int nfiles;
 	unsigned long nbytes;
-	struct file *head;
-	struct file **tail; /* internal */
 };
 
 void queue_init(struct queue *queue);
 void queue_clear(struct queue *queue);
 
 int queue_schedule_regular_file(struct queue *queue, const char *path,
-				void *userdata);
+				unsigned int sum);
 int queue_schedule_path(struct queue *queue, const char *path,
 			unsigned int flags);
 
