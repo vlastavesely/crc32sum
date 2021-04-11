@@ -1,4 +1,4 @@
-.TH "crc32sum" "1" "26 September 2020" "crc32sum" "crc32sum"
+.TH "crc32sum" "1" "11 April 2020" "crc32sum" "crc32sum"
 
 .SH NAME
 .B crc32sum
@@ -9,23 +9,29 @@
 .SY crc32sum
 .OP -r
 .OP -p
-.RB [[ -c
-.IR FILE ]
-.OP -q
-.RB [\& -s ]]
-.RI [ "FILE" ]...
+.IR FILE ...
+.br
+.SY crc32sum
+.B -c
+.RB [ -q
+|
+.BR -s ]
+.OP -p
+.IR FILE ...
 .YS
 
 
 .SH DESCRIPTION
 .B crc32sum
-is a simple utility that calculates the CRC-32 checksum (using the
+is a simple utility that calculates the
+.I CRC-32
+checksum (using the
 .I 0xedb88320
 polynomial) for each of the given files or for the data read from the
 standard input. It aims to work more or less in the same way as the
-.I md5sum
+.B md5sum
 or
-.I sha1sum
+.B sha1sum
 utilities do.
 
 
@@ -35,19 +41,28 @@ utilities do.
 .B \--check
 .I FILE
 .RS 4
-Read CRC32 sums from the FILE and check them.
+Read the
+.I CRC-32
+sums from the
+.I FILE
+and check them.
 .RE
 
 .BR \-r ,
 .B \--recursive
 .RS 4
-Generate CRC32 sums for all files in given directories.
+Treat the
+.I FILE
+as a directory and generate the
+.I CRC-32
+sums for all files in it.
 .RE
 
 .BR \-p ,
 .B \--progress
 .RS 4
-Show a progressbar.
+Show a progressbar similar to the one shown by
+.BR apt (1).
 .RE
 
 .BR \-h ,
@@ -73,33 +88,34 @@ Do not print OK for each successfully verified file.
 .BR \-s ,
 .B \--status
 .RS 4
-Do not output anything, status code shows success.
+Do not output anything, the status code shows success.
 .RE
 
 
-.SH WARNING
-Note that the CRC32 checksum is merely used for error detection in
-transmission and storage. It is not intended to guard against the malicious
-modification of files (i.e., it is not a cryptographic hash).
-
-
-.SH AUTHOR
-Copyright (c) 2018  Vlasta Vesely <vlastavesely@protonmail.ch>
+.SH SECURITY WARNING
+Though the utility does use a similar interface to many hash-calculation
+utilities (e.g.,
+.B md5sum
+or
+.BR sha1sum ),
+it should be kept in mind that
+.I CRC-32
+is not a cryptographic hash. The program is not intended to protect against
+the malicious modification of files but to provide a fast error detection in
+data transmission or storage.
 
 
 .SH REPORTING BUGS
 If you encounter a bug, you should make sure that you are using the latest
-version of the software. If you do and the bug is still present, you can
-report it using either the issues tracker on GitLab or GitHub.
-
-.RS 4
-GitLab: <https://gitlab.com/vlastavesely/crc32sum/issues>
-.br
-GitHub: <https://github.com/vlastavesely/crc32sum/issues>
-.RE
+version of the software. If you are and the bug is still present, you can
+report it on the GitLab issues tracker:
+.IR https://gitlab.com/vlastavesely/crc32sum/issues .
 
 
 .SH LICENSE AND WARRANTY
+Copyright © 2018-2021  Vlasta Vesely
+.RI < vlastavesely@protonmail.ch >
+
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License version 2 as published by the
 Free Software Foundation.

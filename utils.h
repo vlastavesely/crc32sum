@@ -5,7 +5,7 @@
 
 struct progress;
 
-/*
+/**
  * On success, the functions crc32_fd() and crc32_file() return a positive
  * number representing the computed checksum. On error, a negative error code
  * is returned. The error codes correspond to errno(3).

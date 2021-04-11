@@ -7,7 +7,7 @@
  * CRC32 checksum computation (SSE4.1 optimised).
  *
  * WARNING: this implementation requires to initialise the lookup tables by
- * calling the crc32_initialise() function manually. It is thethe user's
+ * calling the crc32_initialise() function manually. It is the user's
  * responsibility to do that.
  */
 

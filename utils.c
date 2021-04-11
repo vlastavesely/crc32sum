@@ -10,7 +10,7 @@
 #define CRC32_PROCESS crc32_buffer
 #endif
 
-#define BUFSIZE (1 << 25) /* 2^25 = 32M */
+#define BUFSIZE 32 * 1024 * 1024
 
 long crc32_fd(int fd, struct progress *progress)
 {
@@ -18,6 +18,10 @@ long crc32_fd(int fd, struct progress *progress)
 	unsigned int align, checksum = ~0;
 	int n = 0;
 
+	/*
+	 * Align the buffer to improve performance of the SIMD
+	 * instructions.
+	 */
 	buffer = malloc(BUFSIZE + 16);
 	align = (unsigned long) buffer % 16;
 	ptr = buffer + (16 - align);
