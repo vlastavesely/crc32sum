@@ -7,6 +7,9 @@
 #include "queue.h"
 #include "progress.h"
 
+#define PROGNAME PACKAGE_NAME
+#define VERSION  PACKAGE_VERSION
+
 static const char *usage_str =
 	"usage: " PROGNAME " [OPTION]... [FILE]...\n"
 	"\n"
