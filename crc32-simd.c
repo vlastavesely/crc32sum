@@ -23,6 +23,9 @@ unsigned int crc32_buffer_simd(const unsigned char *buf, unsigned int len,
 {
 	__m128i x0, x1, x2, x3, x4, x5, x6, x7, x8, y5, y6, y7, y8;
 
+	if (len < 64)
+		goto last;
+
 	/*
 	 * There is at least one block of 64.
 	 */
@@ -134,8 +137,10 @@ unsigned int crc32_buffer_simd(const unsigned char *buf, unsigned int len,
 
 	crc = _mm_extract_epi32(x1, 1);
 
-	if (len > 0)
+last:
+	if (len > 0) {
 		crc = crc32_buffer(buf, len, crc);
+	}
 
 	return crc;
 }
