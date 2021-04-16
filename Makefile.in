@@ -32,16 +32,16 @@ all: $(PROGNAME) $(PROGNAME).1.gz
 include $(wildcard *.d)
 
 %.o: %.c Makefile
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	$(QUIET_CC) $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 %-simd.o: %-simd.c Makefile
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@ -msse4.1 -mpclmul
+	$(QUIET_CC) $(CC) $(CFLAGS) -MMD -MP -c $< -o $@ -msse4.1 -mpclmul
 
 $(PROGNAME): $(OBJFILES)
-	$(CC) $^ -o $(PROGNAME)
+	$(QUIET_LD) $(CC) $^ -o $(PROGNAME)
 
 %.1.gz: %.1
-	cat $< | gzip -f >$@
+	$(QUIET_GEN) cat $< | gzip -f >$@
 
 install:
 	$(MKDIR_P) $(bindir) $(mandir)/man1
@@ -62,3 +62,10 @@ clean-aux:
 	$(RM) -r $(AUX_FILES)
 
 distclean: clean clean-aux
+
+
+ifndef V
+QUIET_CC    = @echo "  CC     $@";
+QUIET_LD    = @echo "  CCLD   $@";
+QUIET_GEN   = @echo "  GEN    $@";
+endif
