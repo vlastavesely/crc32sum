@@ -11,7 +11,7 @@
  */
 
 static struct winsize w;
-static int initialized = 0;
+static int initialised = 0;
 
 static void progress_start();
 static void progress_stop();
@@ -46,12 +46,10 @@ static void progress_step(float val)
 	char *bar;
 	int max;
 
-	if (isatty(STDERR_FILENO) == 0) {
-		errno = 0;
+	if (isatty(STDERR_FILENO) == 0)
 		return;
-	}
 
-	if (initialized == 0)
+	if (initialised == 0)
 		progress_start();
 
 	bar = malloc(w.ws_col);
@@ -75,25 +73,23 @@ static void progress_add(struct progress *ctx, unsigned long val)
 
 static void progress_start()
 {
-	if (isatty(STDERR_FILENO) == 0) {
-		errno = 0;
+	if (isatty(STDERR_FILENO) == 0)
 		return;
-	}
 
 	signal(SIGWINCH, progress_init);
 	signal(SIGINT, progress_abort);
 	signal(SIGKILL, progress_abort);
+
 	progress_init();
-	initialized = 1;
+
+	initialised = 1;
 	progress_step(0);
 }
 
 static void progress_stop()
 {
-	if (isatty(STDERR_FILENO) == 0) {
-		errno = 0;
+	if (isatty(STDERR_FILENO) == 0)
 		return;
-	}
 
 	progress_set_window_height(w.ws_row);
 }
@@ -103,6 +99,7 @@ struct progress *progress_alloc(unsigned long max)
 	struct progress *progress;
 
 	progress = malloc(sizeof(*progress));
+
 	if (progress == NULL)
 		return NULL;
 
