@@ -10,14 +10,14 @@ cd tests
 
 # Single files checksums
 output="$(./../$bin a b)"
-test "x$output" = "x$(echo '5ecfe3c5  a\n6f27f958  b')" || {
+test "x$output" = "x$(printf '5ecfe3c5  a\n6f27f958  b')" || {
 	echo >&2 "fatal: single file checksum computation failed."
 	exit 1
 }
 
 # Recursive checksums
 output="$(./../$bin -r dir | sort)"
-test "x$output" = "x$(echo '0cf7cc62  dir/d\nc950f2ec  dir/c')" || {
+test "x$output" = "x$(printf '0cf7cc62  dir/d\nc950f2ec  dir/c')" || {
 	echo >&2 "fatal: recursive checksum computation failed."
 	exit 1
 }
@@ -72,4 +72,4 @@ cd ..
 
 # ******************************************************************************
 
-echo "\033[32msuccess\033[0m"
+printf "\033[32msuccess\033[0m\n"
