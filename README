@@ -2,11 +2,23 @@ CRC32 Checksum Checker
 ======================
 This is a simple utility that calculates the CRC-32 checksum for each of
 the given files or for data from the standard input. It aims to work in the
-same way as the `md5sum` or `sha1sum` utilities do.
+same way as the ‘md5sum’ or ‘sha1sum’ utilities do.
 
 !!! Note that the CRC-32 checksum is merely used for error detection in
 transmission and storage. It is not intended to guard against the malicious
 modification of files (i.e., it is not a cryptographic hash). !!!
+
+
+SIMD Optimisation
+-----------------
+By default, the program does not use SIMD optimisations. The optimisations
+can be enabled using the ‘configure’ script:
+
+  ./configure --enable-simd
+
+However, it should be noted that support for this feature is more or less
+experimental as the actual calculation is not a performance bottleneck when
+reading data from a disk.
 
 
 Licensing Notice
