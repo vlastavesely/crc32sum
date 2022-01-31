@@ -15,6 +15,7 @@ static int queue_schedule_file(struct queue *queue, const char *path,
 	file->path = strdup(path);
 	file->size = size;
 	file->sum = sum;
+	queue->nbytes += size;
 
 	return 0;
 }
