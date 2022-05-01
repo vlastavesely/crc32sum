@@ -1,6 +1,7 @@
 /crc32sum
-/*.o
-/*.d
+/tests/test
+*.o
+*.d
 *.1.gz
 
 /Makefile
