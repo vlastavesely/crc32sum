@@ -1,4 +1,6 @@
 #include "test.h"
+#include "crc32.h"
+#include "integration.h"
 #include "../crc32.h"
 
 static Suite *create_test_suite()
@@ -8,6 +10,10 @@ static Suite *create_test_suite()
 
 	suite = suite_create(NULL);
 	test_case = tcase_create(NULL);
+
+	register_crc32_tests(test_case);
+
+	register_integration_tests(test_case);
 
 	suite_add_tcase(suite, test_case);
 
