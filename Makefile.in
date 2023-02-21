@@ -2,6 +2,9 @@ PROGNAME = @PACKAGE_NAME@
 
 CFLAGS = -Ofast -Wall
 
+TEST_CFLAGS = @CFLAGS@ @CHECK_CFLAGS@
+TEST_LFLAGS = @CHECK_LIBS@
+
 CC              = @CC@
 INSTALL         = @INSTALL@
 INSTALL_DATA    = @INSTALL_DATA@
@@ -14,7 +17,10 @@ bindir      = @bindir@
 datarootdir = @datarootdir@
 mandir      = @mandir@
 
-OBJFILES = crc32sum.o queue.o progress.o utils.o crc32.o
+OBJFILES = queue.o progress.o utils.o crc32.o
+
+TEST_SOURCES = $(wildcard tests/*.c)
+TEST_OBJECTS = $(TEST_SOURCES:%.c=%.o)
 
 AUX_FILES = Makefile configure aclocal.m4 install-sh config.h* *.log	\
 	*.status *.cache
@@ -27,7 +33,7 @@ endif
 
 .PHONY: all install uninstall test clean
 
-all: $(PROGNAME) $(PROGNAME).1.gz
+all: $(PROGNAME) tests/test $(PROGNAME).1.gz
 
 include $(wildcard *.d)
 
@@ -37,8 +43,11 @@ include $(wildcard *.d)
 %-simd.o: %-simd.c Makefile
 	$(QUIET_CC) $(CC) $(CFLAGS) -MMD -MP -c $< -o $@ -msse4.1 -mpclmul
 
-$(PROGNAME): $(OBJFILES)
+$(PROGNAME): crc32sum.o $(OBJFILES)
 	$(QUIET_LD) $(CC) $^ -o $(PROGNAME)
+
+tests/test: $(OBJFILES) $(TEST_OBJECTS)
+	$(QUIET_LD) $(CC) $^ -o $@ $(TEST_LFLAGS)
 
 %.1.gz: %.1
 	$(QUIET_GEN) cat $< | gzip -f >$@
@@ -52,11 +61,11 @@ uninstall:
 	$(RM) -r $(BINDIR)/$(PROGNAME)
 	$(RM) -f $(MANDIR)/man1/$(PROGNAME).1.gz
 
-test: $(PROGNAME)
-	sh test.sh
+test: all
+	tests/test
 
 clean:
-	$(RM) $(PROGNAME) *.o *.d *.1.gz
+	$(RM) $(PROGNAME) *.o *.d */*.o */*.d *.1.gz
 
 clean-aux:
 	$(RM) -r $(AUX_FILES)

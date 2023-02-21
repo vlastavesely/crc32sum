@@ -14,6 +14,7 @@ AC_PROG_MAKE_SET
 AC_PROG_MKDIR_P
 
 # Checks for libraries.
+PKG_CHECK_MODULES(CHECK, check)
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h sys/ioctl.h unistd.h])
