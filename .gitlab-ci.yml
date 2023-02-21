@@ -4,7 +4,7 @@ stages:
   - test
 
 before_script:
-  - apt update && apt install -y make gcc
+  - apt update && apt install -y make gcc check pkg-config
 
 test:
   stage: test
