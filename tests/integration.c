@@ -52,22 +52,22 @@ END_TEST
 START_TEST(test_crc32_check)
 {
 	test_output("./crc32sum -q -c tests/files/badsums.txt",
-		"tests/files/./a: FAILED\n"); // FIXME
+		"tests/files/./a: FAILED\n");
 
 	test_output("./crc32sum -s -c tests/files/badsums.txt",
 		"");
 
 	test_output("./crc32sum -c tests/files/sums.crlf.txt",
 		"tests/files/./a: OK\n"
-		"tests/files/./b: OK\n"); // FIXME
+		"tests/files/./b: OK\n");
 
 	test_output("./crc32sum -c tests/files/sums.lf.txt",
 		"tests/files/./a: OK\n"
-		"tests/files/./b: OK\n"); // FIXME
+		"tests/files/./b: OK\n");
 
 	test_output("cd tests && ../crc32sum -c files/sums.lf.txt",
 		"files/./a: OK\n"
-		"files/./b: OK\n"); // FIXME
+		"files/./b: OK\n");
 }
 END_TEST
 
@@ -76,7 +76,7 @@ START_TEST(test_crc32_progress)
 	/* check that it does not fail */
 	test_output("./crc32sum -p -c tests/files/sums.lf.txt 2>&1",
 		"tests/files/./a: OK\n"
-		"tests/files/./b: OK\n"); // FIXME
+		"tests/files/./b: OK\n");
 }
 END_TEST
 
@@ -90,7 +90,7 @@ END_TEST
 START_TEST(test_crc32_version)
 {
 	test_output("./crc32sum -v",
-		"crc32sum v1.1.0\n");
+		"crc32sum v1.1.2\n");
 }
 END_TEST
 
