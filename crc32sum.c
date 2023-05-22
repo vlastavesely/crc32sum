@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "queue.h"
 #include "progress.h"
+#include "error.h"
 
 #define PROGNAME PACKAGE_NAME
 #define VERSION  PACKAGE_VERSION
@@ -49,38 +50,6 @@ static void show_usage()
 static void show_version()
 {
 	puts(PROGNAME " v" VERSION);
-}
-
-#undef error
-void error(const char *err, ...)
-{
-	va_list params;
-
-	va_start(params, err);
-	fprintf(stderr, PROGNAME ": ");
-	vfprintf(stderr, err, params);
-	fputc('\n', stderr);
-	va_end(params);
-}
-
-static void errno_to_error(int err, const char *path)
-{
-	switch (-err) {
-	case ENOENT:
-		error("'%s' not found.", path);
-		break;
-	case EACCES:
-		error("do not have access to '%s'.");
-		break;
-	case EINVAL:
-		error("'%s' is not regular file.", path);
-		break;
-	case EISDIR:
-		error("'%s' is a directory.", path);
-		break;
-	default:
-		error("cannot open '%s': error %d.", path, err);
-	}
 }
 
 static int queue_compute_checksums(struct queue *queue, unsigned int flags)
@@ -177,8 +146,9 @@ static int parse_sum_file(struct queue *queue, const char *filename)
 		if (p != path)
 			free(p);
 
-		if (retval)
+		if (retval) {
 			errno_to_error(retval, path);
+		}
 	}
 
 	free(line);
@@ -290,7 +260,6 @@ int main(int argc, const char **argv)
 			path = argv[optind++];
 			retval = queue_schedule_path(&queue, path, flags);
 			if (retval) {
-				errno_to_error(retval, path);
 				goto out;
 			}
 		}

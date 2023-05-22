@@ -17,7 +17,7 @@ bindir      = @bindir@
 datarootdir = @datarootdir@
 mandir      = @mandir@
 
-OBJFILES = queue.o progress.o utils.o crc32.o
+OBJFILES = queue.o progress.o utils.o crc32.o error.o
 
 TEST_SOURCES = $(wildcard tests/*.c)
 TEST_OBJECTS = $(TEST_SOURCES:%.c=%.o)
