@@ -21,6 +21,7 @@ static const char *usage_str =
 	"  -c, --check      read CRC32 sums from the FILE and check them\n"
 	"  -r, --recursive  generate CRC32 sums for all files in given directories\n"
 	"  -p, --progress   show a progressbar\n"
+	"  -L, --follow     follow links\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
 	"  -q, --quiet      don't print OK for each successfully verified file\n"
@@ -29,7 +30,7 @@ static const char *usage_str =
 	"      --help       display this help and exit\n"
 	"      --version    output version information and exit\n";
 
-static const char *short_opts = "hvc:qrps";
+static const char *short_opts = "hvc:qrpsL";
 
 static const struct option long_opts[] = {
 	{"help",       no_argument,        0, 'h'},
@@ -39,6 +40,7 @@ static const struct option long_opts[] = {
 	{"recursive",  no_argument,        0, 'r'},
 	{"progress",   no_argument,        0, 'p'},
 	{"status",     no_argument,        0, 's'},
+	{"follow",     no_argument,        0, 'L'},
 	{0, 0, 0, 0}
 };
 
@@ -192,12 +194,20 @@ static int queue_do_checksums_check(struct queue *queue, unsigned int flags)
 	return retval;
 }
 
+static void inline sanitise_path(char *path)
+{
+	/* Remove trailing slash */
+	if (path[strlen(path) - 1] == '/') {
+		path[strlen(path) - 1] = '\0';
+	}
+}
+
 int main(int argc, const char **argv)
 {
 	int c = 0, retval = 0;
 	int opt_index = 0;
 	unsigned int flags = 0;
-	const char *check = NULL, *path = NULL;
+	const char *check = NULL;
 	struct queue queue;
 
 	queue_init(&queue);
@@ -221,6 +231,9 @@ int main(int argc, const char **argv)
 			break;
 		case 'r':
 			flags |= CRC32SUM_RECURSIVE;
+			break;
+		case 'L':
+			flags |= CRC32SUM_FOLLOW;
 			break;
 		case 'p':
 			flags |= CRC32SUM_PROGRESS;
@@ -257,8 +270,13 @@ int main(int argc, const char **argv)
 
 	if (optind < argc) {
 		while (optind < argc) {
-			path = argv[optind++];
+			char *path;
+
+			path = strdup(argv[optind++]);
+			sanitise_path(path);
 			retval = queue_schedule_path(&queue, path, flags);
+			free(path);
+
 			if (retval) {
 				goto out;
 			}
