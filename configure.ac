@@ -36,6 +36,7 @@ AC_MSG_CHECKING([whether SIMD optimisations should be enabled])
 AC_ARG_ENABLE(simd,
 	AS_HELP_STRING([--enable-simd], [enable SIMD optimisations]), [
 		AC_MSG_RESULT(yes)
+		AC_DEFINE([USE_SIMD], [1], [use SIMD optimisations])
 		USE_SIMD=yes
 ], [AC_MSG_RESULT(no)])
 

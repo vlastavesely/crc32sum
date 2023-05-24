@@ -2,12 +2,13 @@
 #include "utils.h"
 #include "progress.h"
 
-#ifdef HAVE_SSE4_1_INSTRUCTIONS
-#include "crc32-simd.h"
-#define CRC32_PROCESS crc32_buffer_simd
+#if defined HAVE_SSE4_1_INSTRUCTIONS && defined USE_SIMD
+  #include "crc32-simd.h"
+  #warning "SIMD optimisation is enabled!"
+  #define CRC32_PROCESS crc32_buffer_simd
 #else
-#include "crc32.h"
-#define CRC32_PROCESS crc32_buffer
+  #include "crc32.h"
+  #define CRC32_PROCESS crc32_buffer
 #endif
 
 #define BUFSIZE 32 * 1024 * 1024
