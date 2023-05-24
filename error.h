@@ -6,4 +6,6 @@
 void error(const char *err, ...);
 void errno_to_error(int err, const char *path);
 
+void set_error_handler(void (*handler)(const char *));
+
 #endif /* __ERROR_H */

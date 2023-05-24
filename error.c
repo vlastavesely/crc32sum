@@ -3,15 +3,29 @@
 
 #define PROGNAME PACKAGE_NAME
 
+static void print_error_default(const char *message)
+{
+	fprintf(stderr, "%s\n", message);
+}
+
+void (*print_error)(const char *) = print_error_default;
+
+void set_error_handler(void (*handler)(const char *))
+{
+	print_error = handler;
+}
+
 #undef error
 void error(const char *err, ...)
 {
+	char buf[1024] = PROGNAME ": ";
 	va_list params;
 
 	va_start(params, err);
-	fprintf(stderr, PROGNAME ": ");
-	vfprintf(stderr, err, params);
-	fputc('\n', stderr);
+	vsprintf(buf + strlen(buf), err, params);
+
+	print_error(buf);
+
 	va_end(params);
 }
 
@@ -29,6 +43,9 @@ void errno_to_error(int err, const char *path)
 		break;
 	case ELOOP:
 		error("'%s' a link loop detected.", path);
+		break;
+	case ENOLINK:
+		error("'%s' is a broken link.", path);
 		break;
 	case EISDIR:
 		error("'%s' is a directory.", path);
