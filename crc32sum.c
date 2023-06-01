@@ -70,7 +70,7 @@ static int queue_compute_checksums(struct queue *queue, unsigned int flags)
 		checksum = crc32_file(path, progress);
 
 		if (checksum < 0) {
-			errno_to_error(checksum, path);
+			errno_to_error(-checksum, path);
 			retval++;
 		} else {
 			fprintf(stdout, "%08x  %s\n", (unsigned) checksum, path);
