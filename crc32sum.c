@@ -21,7 +21,7 @@ static const char *usage_str =
 	"  -c, --check      read CRC32 sums from the FILE and check them\n"
 	"  -r, --recursive  generate CRC32 sums for all files in given directories\n"
 	"  -p, --progress   show a progressbar\n"
-	"  -L, --follow     follow links\n"
+	"  -L, --follow     follow symbolic links\n"
 	"\n"
 	"The following options are useful only when verifying checksums:\n"
 	"  -q, --quiet      don't print OK for each successfully verified file\n"
