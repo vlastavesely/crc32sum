@@ -1,5 +1,6 @@
 #include "test.h"
 #include "integration.h"
+#include "../config.h"
 
 static char *exec_command(const char *command)
 {
@@ -90,7 +91,7 @@ END_TEST
 START_TEST(test_crc32_version)
 {
 	test_output("./crc32sum -v",
-		"crc32sum v1.1.2\n");
+		"crc32sum v" PACKAGE_VERSION "\n");
 }
 END_TEST
 
