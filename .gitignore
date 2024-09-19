@@ -12,3 +12,5 @@
 /*.status
 /*.cache
 /*.log
+/*.sub
+/*.guess

@@ -23,7 +23,7 @@ TEST_SOURCES = $(wildcard tests/*.c)
 TEST_OBJECTS = $(TEST_SOURCES:%.c=%.o)
 
 AUX_FILES = Makefile configure aclocal.m4 install-sh config.h* *.log	\
-	*.status *.cache
+	*.status *.cache *.guess *.sub
 
 USE_SIMD = @USE_SIMD@
 ifeq ($(USE_SIMD),yes)
